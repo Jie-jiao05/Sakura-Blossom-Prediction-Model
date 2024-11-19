@@ -1,12 +1,11 @@
 #### Preamble ####
-# Purpose: Simulates a dataset of Australian electoral divisions, including the 
-  #state and party that won each division.
-# Author: Rohan Alexander
-# Date: 26 September 2024
-# Contact: rohan.alexander@utoronto.ca
+# Purpose: Simulates  dataset of sakura blossom
+# Author: Shanjie Jiao
+# Date: 18 November 2024 
+# Contact: Shanjie.Jiao@mail.utoronto.ca
 # License: MIT
-# Pre-requisites: The `tidyverse` package must be installed
-# Any other information needed? Make sure you are in the `starter_folder` rproj
+# Pre-requisites: Download data
+# Any other information needed? No
 
 
 #### Workspace setup ####

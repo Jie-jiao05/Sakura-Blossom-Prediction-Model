@@ -1,0 +1,309 @@
+LLM: ChatGPT-4.
+Date: 18 November 2024
+
+#### Preamble ####
+# Purpose: Scrape temperature data
+# Author: Shanjie Jiao
+# Date: 18 November 2024 
+# Contact: Shanjie.Jiao@mail.utoronto.ca
+# License: MIT
+# Pre-requisites: No
+# Any other information needed? No
+
+
+#### Workspace setup ####
+
+### Load packages ---------------------------------------------------------------------------------
+library(tidyverse)
+library(rvest)
+library(lubridate)
+
+
+### Define function to scrape historical temperatures ---------------------------------------------
+# Example page: https://www.data.jma.go.jp/obd/stats/etrn/view/monthly_s3_en.php?block_no=47401
+
+scrape_temps <- function(url) {
+  
+  # Let user know what is currently being scrape
+  message(paste0("Currently scraping... ", url))
+  
+  # Read website and convert table to tibble
+  table <- read_html(base_url) %>%
+    html_node(".data2_s") %>%
+    html_table() %>%
+    as_tibble()
+  
+  # Clean and format table
+  temps <- table %>%
+    select(-Annual) %>%
+    rename(year = Year) %>%
+    rowwise() %>%
+    mutate(across(Jan:Dec, ~ ifelse(is.numeric(.), ., parse_number(., na = c("", "ã€€"))))) %>%
+    pivot_longer(Jan:Dec, names_to = "month", values_to = "mean_temp_c") %>%
+    mutate(month_date = ymd(paste(year, month, "01", sep = "-"))) %>%
+    filter(between(year, 1952, 2019)) %>%
+    select(year, month, month_date, mean_temp_c)
+  
+  # Return tidy tibble
+  return(temps)
+}
+
+
+### Scrape and clean temperatures -----------------------------------------------------------------
+# Note: some parsing failures expected for characters "ã€€"
+temperatures_scraped <- read_csv("~/Sakura-Blossom-Prediction-Model/data/01-raw_data/raw_modern_temperatures_data.csv") %>%
+  distinct(station_id, station_name) %>%
+  mutate(temperature_url = paste0("https://www.data.jma.go.jp/obd/stats/etrn/view/monthly_s3_en.php?block_no=",
+                                  station_id)) %>%
+  mutate(temperature_df = map(temperature_url, possibly(scrape_temps, NULL)))
+
+temperatures <- temperatures_scraped %>%
+  select(-temperature_url) %>%
+  unnest(temperature_df)
+
+
+# Write the cleaned data to a CSV file
+write_csv(temperatures, "~/Sakura-Blossom-Prediction-Model/data/01-raw_data/raw_modern_temperatures_data.csv")
+ChatGPT said:
+ChatGPT
+Your script is well-structured and includes a clear preamble and comments. However, it contains a few issues that need correction for functionality. Below is the corrected and enhanced version of your script:
+
+Corrected Script
+r
+Copy code
+#### Preamble ####
+# Purpose: Scrape temperature data
+# Author: Shanjie Jiao
+# Date: 18 November 2024 
+# Contact: Shanjie.Jiao@mail.utoronto.ca
+# License: MIT
+# Pre-requisites: None
+# Any other information needed? No
+
+
+#### Workspace setup ####
+
+### Load packages ---------------------------------------------------------------------------------
+library(tidyverse)
+library(rvest)
+library(lubridate)
+
+
+### Define function to scrape historical temperatures ---------------------------------------------
+# Example page: https://www.data.jma.go.jp/obd/stats/etrn/view/monthly_s3_en.php?block_no=47401
+
+scrape_temps <- function(url) {
+  
+  # Let user know what is currently being scraped
+  message(paste0("Currently scraping... ", url))
+  
+  # Read website and convert table to tibble
+  table <- tryCatch({
+    read_html(url) %>%
+      html_node(".data2_s") %>%
+      html_table(fill = TRUE) %>%
+      as_tibble()
+  }, error = function(e) {
+    message("Error scraping URL: ", url)
+    return(NULL)
+  })
+  
+  # Proceed if table was successfully scraped
+  if (!is.null(table)) {
+    temps <- table %>%
+      select(-Annual) %>%
+      rename(year = Year) %>%
+      mutate(across(Jan:Dec, ~ parse_number(., na = c("", "ã€€")))) %>%
+      pivot_longer(cols = Jan:Dec, names_to = "month", values_to = "mean_temp_c") %>%
+      mutate(
+        month_date = ymd(paste(year, month, "01", sep = "-")),
+        year = as.integer(year)
+      ) %>%
+      filter(between(year, 1952, 2019)) %>%
+      select(year, month, month_date, mean_temp_c)
+    
+    return(temps)
+  } else {
+    return(NULL)
+  }
+}
+
+
+### Scrape and clean temperatures -----------------------------------------------------------------
+# Note: Parsing failures for characters like "ã€€" are handled with `parse_number`
+
+# Load raw station data
+stations <- read_csv("~/Sakura-Blossom-Prediction-Model/data/01-raw_data/raw_modern_temperatures_data.csv") %>%
+  distinct(station_id, station_name)
+
+# Generate URLs and scrape data
+temperatures_scraped <- stations %>%
+  mutate(temperature_url = paste0(
+    "https://www.data.jma.go.jp/obd/stats/etrn/view/monthly_s3_en.php?block_no=",
+    station_id, "&view=1"
+  )) %>%
+  mutate(temperature_df = map(temperature_url, possibly(scrape_temps, NULL)))
+
+# Combine all scraped data into a single tibble
+temperatures <- temperatures_scraped %>%
+  select(-temperature_url) %>%
+  unnest(cols = c(temperature_df))
+
+# Write the cleaned data to a CSV file
+write_csv(temperatures, "~/Sakura-Blossom-Prediction-Model/data/01-raw_data/cleaned_modern_temperatures.csv")
+Key Fixes and Enhancements:
+Error Handling: Added tryCatch to manage failed web scraping attempts without breaking the entire script.
+File Path: Adjusted the output file name to cleaned_modern_temperatures.csv for clarity and to prevent overwriting raw data.
+Parsing Errors: Used parse_number to handle non-numeric characters ("ã€€") robustly.
+Code Comments: Enhanced readability by clarifying each step in the script.
+Functional URL Generation: Appended &view=1 to the temperature_url to ensure the URL structure matches your example.
+Notes:
+File Path: Ensure the file raw_modern_temperatures_data.csv exists in the directory ~/Sakura-Blossom-Prediction-Model/data/01-raw_data/.
+Dependencies: Ensure you have the required libraries installed (tidyverse, rvest, lubridate).
+Testing: Before running for all stations, test with a subset of URLs to validate the scraping process.
+
+
+
+
+
+You said:
+I want to scrape from https://www.data.jma.go.jp/obd/stats/etrn/view/monthly_s3_en.php?block_no=47830&view=1, but it have various station id
+
+
+Updated Code with Apr:May
+Here’s how the relevant section of your code would look with this adjustment:
+
+r
+Copy code
+table %>%
+  rename_with(~ str_trim(.), everything()) %>%  # Remove extra whitespace in column names
+  select(-Annual) %>%  # Drop the `Annual` column
+  rename(year = Year) %>%  # Rename `Year` for consistency
+  mutate(across(Apr:May, ~ if (is.character(.)) {
+    suppressWarnings(parse_number(., na = c("", "ã€€", "N/A", "—")))
+  } else {
+    .
+  })) %>%  # Handle numeric or character values for Apr and May
+  pivot_longer(cols = Apr:May, names_to = "month", values_to = "mean_temp_c") %>%  # Reshape only Apr and May
+  mutate(
+    month_date = ymd(paste(year, month, "01", sep = "-")),  # Create a full date for each month
+    year = as.integer(year),  # Ensure the year is an integer
+    station_id = station_id  # Add the station ID
+  ) %>%
+  filter(between(year, 1952, 2019)) %>%  # Filter the years
+  select(station_id, year, month, month_date, mean_temp_c)  # Select relevant columns
+Adjust for Your Use Case
+Change cols = Apr:May to any specific range of months you’re interested in.
+Let me know if you need help making further adjustments!
+
+
+
+
+
+You said:
+save to here ~/Sakura-Blossom-Prediction-Model/data/01-raw_data/temperatures_with_station_names.csv
+ChatGPT said:
+ChatGPT
+Here’s the updated script that saves the output to your specified path:
+
+Updated Script with Specific Save Path
+r
+Copy code
+#### Preamble ####
+# Purpose: Scrape temperature data with station names
+# Author: Shanjie Jiao
+# Date: 18 November 2024 
+# Contact: Shanjie.Jiao@mail.utoronto.ca
+# License: MIT
+# Pre-requisites: None
+
+
+#### Workspace Setup ####
+
+# Load required packages
+library(tidyverse)
+library(rvest)
+library(lubridate)
+
+
+#### Define Scraping Function ####
+
+scrape_temps <- function(station_id) {
+  url <- paste0("https://www.data.jma.go.jp/obd/stats/etrn/view/monthly_s3_en.php?block_no=", station_id, "&view=1")
+  message("Scraping station ID: ", station_id)
+  
+  table <- tryCatch({
+    read_html(url) %>%
+      html_node(".data2_s") %>%
+      html_table(fill = TRUE) %>%
+      as_tibble()
+  }, error = function(e) {
+    message("Error scraping station ID: ", station_id)
+    return(NULL)
+  })
+  
+  if (!is.null(table)) {
+    table %>%
+      rename_with(~ str_trim(.), everything()) %>%  # Remove extra whitespace in column names
+      select(-Annual) %>%  # Drop the `Annual` column
+      rename(year = Year) %>%  # Rename `Year` for consistency
+      mutate(across(Apr:May, ~ if (is.character(.)) {
+        suppressWarnings(parse_number(., na = c("", "ã€€", "N/A", "—")))
+      } else {
+        .
+      })) %>%  # Handle numeric or character values for Apr and May
+      pivot_longer(cols = Apr:May, names_to = "month", values_to = "mean_temp_c") %>%  # Reshape only Apr and May
+      mutate(
+        month_date = ymd(paste(year, month, "01", sep = "-")),  # Create a full date for each month
+        year = as.integer(year),  # Ensure the year is an integer
+        station_id = station_id  # Add the station ID
+      ) %>%
+      filter(between(year, 1952, 2019)) %>%  # Filter the years
+      select(station_id, year, month, month_date, mean_temp_c)  # Select relevant columns
+  } else {
+    NULL
+  }
+}
+
+
+#### Scrape Data ####
+
+# Define the station lookup table
+station_lookup <- tibble(
+  station_id = c(47401, 47406, 47407, 47409, 47412, 47413, 47417, 47418, 47420, 47423),  # Add all station IDs here
+  station_name = c("Wakkanai", "Rumoi", "Asahikawa", "Abashiri", "Sapporo", "Iwamizawa", "Obihiro", "Kushiro", "Nemuro", "Muroran")
+)
+
+# Initialize data and error lists
+scraped_data <- list()
+errors <- list()
+
+# Scrape data for each station
+for (i in seq_along(station_lookup$station_id)) {
+  station_id <- station_lookup$station_id[i]
+  message(sprintf("Processing %d of %d: Station ID %s", i, length(station_lookup$station_id), station_id))
+  Sys.sleep(2)  # Add delay between requests
+  result <- scrape_temps(station_id)
+  if (!is.null(result)) {
+    scraped_data[[as.character(station_id)]] <- result
+  } else {
+    errors[[as.character(station_id)]] <- paste("Failed for station ID:", station_id)
+  }
+}
+
+# Combine all successful data
+final_data <- bind_rows(scraped_data)
+
+# Merge the `station_name` from the lookup table
+final_data <- final_data %>%
+  left_join(station_lookup, by = "station_id") %>%
+  select(station_id, station_name, everything())  # Reorder columns
+
+# Save results to the specified path
+output_dir <- "~/Sakura-Blossom-Prediction-Model/data/01-raw_data"
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir, recursive = TRUE)
+}
+
+# Save the final dataset to the CSV file
+write_csv(final_data, file = file.path(output_dir, "temperatures_with_station_names.csv"))
