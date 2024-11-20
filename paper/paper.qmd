@@ -11,6 +11,7 @@ format: pdf
 toc: true
 number-sections: true
 bibliography: references.bib
+
 ---
 
 ```{r}
@@ -30,13 +31,13 @@ library(palmerpenguins)
 
 # Introduction
 
-Overview paragraph
+Sakura is not merely a ornamental plants but also hold profound cultural significance. In Japanese literature, poetry, and art, sakura blossoms carry deep emotional and symbolic meaning, with the aesthetic concept of "mono no aware" being particularly notable. Due to their short blooming period, sakura blossoms are often seen as a metaphor for the impermanence and fleeting beauty of life, evoking deep reflection and appreciation for the essence of existence.
 
-Estimand paragraph
+Beyond their cultural significance, sakura blossoms also have a significant positive impact on Japan's economy. "Ohanami"  (sakura blossom viewing) is a traditional celebration of spring that attracts a large number of domestic and international visitors every year during the blooming season from April to May. According to research by Katsuhiro Miyamoto, a professor at Kansai University, the 2024 cherry blossom season is projected to contribute up to ¥1.14 trillion (approximately $7.7 billion) to Japan's economy (@kaneko2024hanami). This event not only supports the post-pandemic recovery of the tourism sector but also positively impacts related industries such as catering and retail.
 
-Results paragraph
+Given the importance of sakura blooming times for tourism planning and economic activities, accurately forecasting these dates is essential. This study aims to utilize linear regression and Bayesian spline methods to systematically analyze the effects of temperature and geographical location on sakura blooming times. By developing a predictive model, the study seeks to provide scientific insights for sakura enthusiasts worldwide, as well as for tourism and related industries, facilitating more precise planning of viewing activities and resource allocation.
 
-Why it matters paragraph
+
 
 Telegraphing paragraph: The remainder of this paper is structured as follows. @sec-data....
 
