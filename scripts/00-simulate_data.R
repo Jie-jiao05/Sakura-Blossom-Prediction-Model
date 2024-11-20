@@ -30,25 +30,18 @@ sakura_data <- sakura_data %>%
   )
 
 # Merge with temperature data based on flower_month and full_bloom_month
-sakura_flower_temp <- sakura_data %>%
-  left_join(
-    temperature_data %>% rename(flower_month = month),
-    by = c("station_id", "year", "flower_month")
-  ) %>%
-  rename(flower_temp = mean_temp_c)
-
 sakura_full_bloom_temp <- sakura_flower_temp %>%
   left_join(
     temperature_data %>% rename(full_bloom_month = month),
     by = c("station_id", "year", "full_bloom_month")
   ) %>%
-  rename(full_bloom_temp = mean_temp_c)
+  rename(month_mean_temp = mean_temp_c)
 
 # Select and rename final columns
 simulate_data_of_modern_sakura <- sakura_full_bloom_temp %>%
   select(
     station_id, station_name, latitude, longitude, year,
-    flower_date, flower_temp, full_bloom_date, full_bloom_temp
+    flower_date, full_bloom_date, month_mean_temp
   )
 
 #### Save the processed data ####
