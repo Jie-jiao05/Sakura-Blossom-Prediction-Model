@@ -1,44 +1,39 @@
 #### Preamble ####
-# Purpose: Cleans the raw plane data recorded by two observers..... [...UPDATE THIS...]
-# Author: Rohan Alexander [...UPDATE THIS...]
-# Date: 6 April 2023 [...UPDATE THIS...]
-# Contact: rohan.alexander@utoronto.ca [...UPDATE THIS...]
+# Purpose: Cleans the data 
+# Author: Shanjie Jiao
+# Date: 18 November 2024 
+# Contact: Shanjie.Jiao@mail.utoronto.ca
 # License: MIT
-# Pre-requisites: [...UPDATE THIS...]
-# Any other information needed? [...UPDATE THIS...]
+# Pre-requisites: Download data
+# Any other information needed? No
 
 #### Workspace setup ####
-library(tidyverse)
+library(dplyr)
+library(readr)
+library(here)
+
+#### Load data ####
+temperature_data <- read_csv(here("data", "00-simulate_data", "simulate_temperature_data.csv"))
+detailed_sakura_data <- read_csv(here("data", "00-simulate_data", "simulate_combined_sakura_data.csv"))
+historical_data <- read_csv(here("data", "00-simulate_data", "simulate_historical_data.csv"))
 
 #### Clean data ####
-raw_data <- read_csv("inputs/data/plane_data.csv")
 
-cleaned_data <-
-  raw_data |>
-  janitor::clean_names() |>
-  select(wing_width_mm, wing_length_mm, flying_time_sec_first_timer) |>
-  filter(wing_width_mm != "caw") |>
-  mutate(
-    flying_time_sec_first_timer = if_else(flying_time_sec_first_timer == "1,35",
-                                   "1.35",
-                                   flying_time_sec_first_timer)
-  ) |>
-  mutate(wing_width_mm = if_else(wing_width_mm == "490",
-                                 "49",
-                                 wing_width_mm)) |>
-  mutate(wing_width_mm = if_else(wing_width_mm == "6",
-                                 "60",
-                                 wing_width_mm)) |>
-  mutate(
-    wing_width_mm = as.numeric(wing_width_mm),
-    wing_length_mm = as.numeric(wing_length_mm),
-    flying_time_sec_first_timer = as.numeric(flying_time_sec_first_timer)
-  ) |>
-  rename(flying_time = flying_time_sec_first_timer,
-         width = wing_width_mm,
-         length = wing_length_mm
-         ) |> 
-  tidyr::drop_na()
+# Filter for March to May and remove rows with NA in 'mean_temp_c'
+cleaned_temperature_data <- temperature_data %>%
+  filter(month %in% c('Mar', 'Apr', 'May')) %>%
+  na.omit()
+
+# Remove rows with NA in combined sakura data
+cleaned_sakura_data <- detailed_sakura_data %>%
+  drop_na()
+
+# Clean historical data: Remove specific columns and rows with NAs
+historical_data_cleaned <- historical_data %>%
+  select(-flower_source, -flower_source_name, -study_source, -temp_c_obs) %>%  # Remove specified columns
+  filter(!is.na(temp_c_recon) & !is.na(flower_doy) & !is.na(flower_date))  # Remove rows with NAs in specific columns
 
 #### Save data ####
-write_csv(cleaned_data, "outputs/data/analysis_data.csv")
+write_csv(cleaned_temperature_data, here("data", "02-analysis_data", "analysis_temperature_data.csv"))
+write_csv(cleaned_sakura_data, here("data", "02-analysis_data", "analysis_modern_sakura_data.csv"))
+write_csv(historical_data_cleaned, here("data", "02-analysis_data", "analysis_historical_sakura_data.csv"))

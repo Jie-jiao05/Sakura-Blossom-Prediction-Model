@@ -11,20 +11,17 @@
 #### Workspace setup ####
 set.seed(522)
 
-# Load required libraries
 library(dplyr)
 library(readr)
 library(lubridate)
 library(here)
 
-# Define file paths
-sakura_file <- "~/Sakura-Blossom-Prediction-Model/data/01-raw_data/raw_modern_sakura_data.csv"
-temperature_file <- "~/Sakura-Blossom-Prediction-Model/data/01-raw_data/temperatures_with_station_names.csv"
+#### Read the datasets ####
+sakura_data <- read_csv(here("data", "01-raw_data", "raw_modern_sakura_data.csv"))
+temperature_data <- read_csv(here("data", "01-raw_data", "temperatures_with_station_names.csv"))
+historical_data <- read_csv(here("data", "01-raw_data", "raw_historical_sakura_data.csv"))
 
-# Read the datasets
-sakura_data <- read_csv(sakura_file)
-temperature_data <- read_csv(temperature_file)
-
+#### Process sakura data ####
 # Convert flower_date and full_bloom_date to Date type and extract the corresponding month
 sakura_data <- sakura_data %>%
   mutate(
@@ -54,14 +51,7 @@ simulate_data_of_modern_sakura <- sakura_full_bloom_temp %>%
     flower_date, flower_temp, full_bloom_date, full_bloom_temp
   )
 
-# Save the combined data to a new file (optional)
-write_csv(simulate_data_of_modern_sakura, "~/Sakura-Blossom-Prediction-Model/data/00-simulate_data/combined_sakura_data.csv")
-
-##########save tem########
-file_tem_data <- here("data", "01-raw_data", "temperatures_with_station_names.csv")
-tem_sakura_data <- read_csv(file_tem_data)
-
-
-#### Save data ####
-write_csv(tem_sakura_data, "~/Sakura-Blossom-Prediction-Model/data/00-simulate_data/temperature_data.csv") 
-
+#### Save the processed data ####
+write_csv(simulate_data_of_modern_sakura, here("data", "00-simulate_data", "simulate_combined_sakura_data.csv"))
+write_csv(temperature_data, here("data", "00-simulate_data", "simulate_temperature_data.csv"))
+write_csv(historical_data, here("data", "00-simulate_data", "simulate_historical_data.csv"))

@@ -11,8 +11,6 @@
 #### Workspace setup ####
 library(here)
 
-
-
 #### Download data ####
 file_historical_sakura_data <- here("other", "Origional_Data_Extract_From_Alex", "sakura-historical.csv")
 historical_sakura_data <- read_csv(file_historical_sakura_data)
