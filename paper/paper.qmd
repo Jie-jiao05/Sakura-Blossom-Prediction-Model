@@ -321,10 +321,6 @@ Background details and diagnostics are included in [Appendix -@sec-model-details
 Define $y_i$ as the specific day of sakura flowering date in numeric form. And we begin with a linear regression model than fit it with a more in depth Bayesian model. 
 ### Linear Regression Model
 
-$$
-y_i = \beta_0 + \beta_1 \cdot \text{month_mean_temperature}_i + \beta_2 \cdot \text{Latitude}_i + \beta_3 \cdot \text{Longitude}_i + \epsilon_i\\
-\epsilon_i \sim \text{Normal}(0, \sigma^2)\
-$$
 
 
 Where:
@@ -337,22 +333,10 @@ Where:
 
 ### Bayesian Model
 
-$$
-y_i| \mu_i \sim \text{Normal}(\mu_i, \sigma^2)
-$$
 
-$$
-\mu_i = \beta_0 + \beta_1 \cdot \text{month_mean_temperature}_i + \beta_2 \cdot \text{Latitude}_i + \beta_3 \cdot \text{Longitude}_i
-$$
 
-#### Priors:
-$$
-\beta_0, \beta_1, \beta_2, \beta_3 \sim \text{Normal}(0, 10^2)
-$$
 
-$$
-\sigma^2 \sim \text{Inverse-Gamma}(\alpha, \beta)
-$$
+
 
 Where:
 - $y_i$ is the observed flowering day for the $i$-th observation.
