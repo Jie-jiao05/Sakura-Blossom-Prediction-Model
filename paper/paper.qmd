@@ -29,18 +29,25 @@ library(palmerpenguins)
 library(maps)
 library(ggplot2)
 library(knitr)
+library(arrow)
+library(rstanarm)
 
 
-#read data
-analysis_modern_sakura_data <- here("data", "02-analysis_data", "analysis_modern_sakura_data.csv")
+# Define paths to data and model
+analysis_modern_sakura_data <- here("data", "02-analysis_data", "analysis_modern_sakura_data.parquet")
 temperature_data <- here("data", "02-analysis_data", "temperature_data.csv")
-train_data <- here("data", "03-model_data", "train_data.csv")
-test_data <- here("data", "03-model_data", "test_data.csv")
-# Read the data
-sakura_data <- read_csv(analysis_modern_sakura_data)
-tem_data <- read_csv(temperature_data)
-train <- read_csv(train_data)
-test <- read_csv(test_data)
+
+# Load the data
+sakura_data <- read_parquet(analysis_modern_sakura_data)  # Load Parquet data
+tem_data <- read_csv(temperature_data)                    # Load CSV data
+
+# Load the pre-trained Bayesian hierarchical model
+flower_model <- readRDS(here::here("models", "bayesian_hierarchical_model.rds"))
+# Load the train dataset
+train <- read_parquet(here::here("data","03-model_data", "train_data.parquet"))
+test <- read_parquet(here::here("data", "03-model_data","test_data.parquet"))
+
+
 ```
 
 
@@ -191,6 +198,7 @@ print(combined_plot)
 ## Predictor variables
 
 In this study, sakura blooming dates are influenced by multiple environmental and geographical factors, leading to the selection of several key predictor variables for analysis. 
+
 ### Average Temperature of the Flowering Month
 The first variable is the average temperature of the flowering month (month_mean_temp). As Dr. Casper J. van der Kooi, Peter G. Kevan, and Matthew H. Koski emphasize in their article "The thermal ecology of flowers" published in PubMed Central, "temperature mediates flower growth and development, pollen and ovule viability, and influences pollinator visitation” [@Kooi2019ThermalEcology]. Since temperature directly affects plant physiological processes and ecological interactions, it is considered one of the most critical predictors in this study. 
 
@@ -284,6 +292,7 @@ ggplot(yearly_avg_temp, aes(x = year, y = mean_temp_c)) +
 ```
 
 ## Correlation between Predictor Variables
+
 ### Latitude and Longitude with Temperature
 @fig-cor demonstrates how temperatures vary across different locations based on their geographical coordinates. A positive relation could be observed, with lower temperatures observed at higher latitudes, such as in northern Japan, and gradually increasing temperatures as the coordinates approach regions closer to the equator.
 ```{r}
@@ -312,51 +321,301 @@ ggplot(sakura_data, aes(x = latitude, y = longitude, color = month_mean_temp)) +
 
 The goal of our modeling is to predict the precise timing of sakura blooming and full blooming across different regions of Japan each year. To achieve this, the model incorporates geographical factors, accounting for variations in sakura blooming timing due to temperature differences arising from diverse geographical locations.
 
-Given the inherent instability, uncertainty, and unpredictability of the temperature variable, we adopt a two-step modeling approach. First, we employ a linear regression model to establish a baseline prediction, providing initial insights into the relationship between the predictors and blooming dates. Next, we leverage a Bayesian model to address the complexities and uncertainties that the linear model cannot capture. The Bayesian approach allows us to incorporate the uncertainty into the model, enhancing its ability to predict the timing of sakura blooming with greater accuracy and reliability. 
+Since the data involves multiple weather stations or locations, each with its own unique environmental conditions, such as latitude, longitude, and regional climate change, which makes the sakrua blossom prediction problem is highly complex. Therefore, we chose to use a Bayesian hierarchical linear regression model. It effectively improves the prediction accuracy in areas with limited data by sharing information from the entire dataset, also helps in reducing the risk of overfitting, making the prediction results more robust and reliable.
 
 Background details and diagnostics are included in [Appendix -@sec-model-details].
 
 ## Model set-up
-
-Define $y_i$ as the specific day of sakura flowering date in numeric form. And we begin with a linear regression model than fit it with a more in depth Bayesian model. 
-### Linear Regression Model
+This study uses a Bayesian Hierarchical Linear Regression model to analyze the relationship between sakura flowering dates and various predictors, implemented using the stan_glmer function from the rstanarm package @rstanarm in R [@citeR] and use the default priors from `rstanarm`. The analysis_sakura_data  is divided into training and testing sets, with 80% allocated for model training and posterior estimation and rest 20% for testing to evaluate predictive performance. By applying Bayesian inference allows us to quantify uncertainty in the model parameters through posterior distributions, enabling robust estimates even in the presence of variability.
 
 
+###  Bayesian Hierarchical Linear Regression Model
 
-Where:
-- $y_i$ is the flowering day for the $i$-th observation (measured in numeric form).
-- $\beta_0$ is the intercept of the model.
-- $\beta_1$ is the coefficient for the month\_mean\_temperature (measured in Celsius).
-- $\beta_2$ is the coefficient for latitude.
-- $\beta_3$ is the coefficient for longitude.
-- $\epsilon_i$ is the error term for the $i$-th observation
-
-### Bayesian Model
-
-
-
-
+```{=latex}
+\begin{align}  
+y_i | \mu_i, \sigma &\sim \text{Normal}(\mu_i, \sigma) \\
+\mu_i &= \beta_0 + \beta_1 \cdot \text{month\_mean\_temperature}_i + \beta_2 \cdot \text{latitude}_i \nonumber \\
+&\quad + \beta_3 \cdot \text{longitude}_i + \gamma_{\text{region}(i)} + \delta_{\text{year}(i)} \\
+\gamma_{\text{region}} &\sim \text{Normal}(0, \sigma_{\gamma}) \\
+\delta_{\text{year}} &\sim \text{Normal}(0, \sigma_{\delta}) \\
+\beta_0, \beta_1, \beta_2, \beta_3 &\sim \text{Normal}(0, 10) \\
+\sigma, \sigma_{\gamma}, \sigma_{\delta} &\sim \text{Exponential}(1)
+\end{align}
 
 
-Where:
-- $y_i$ is the observed flowering day for the $i$-th observation.
-- $\mu_i$ is the expected flowering day for the $i$-th observation.
-- $\beta_0, \beta_1, \beta_2, \beta_3$ are the regression coefficients, assumed to follow a normal prior with mean $0$ and variance $10^2$.
-- $\sigma^2$ is the variance of the residuals, assumed to follow an inverse-gamma prior with hyperparameters $\alpha$ and $\beta$.
-
-We run the model in R [@citeR] using the `rstanarm` package of @rstanarm. We use the default priors from `rstanarm`.
-
+```
 
 ### Model justification
 
-We expect a positive relationship between the size of the wings and time spent aloft. In particular...
+This model captures the variability in flowering days arising from geographic and climatic differences by incorporating both fixed effects, such as temperature, latitude, and longitude, and random effects for regions and climates. The hierarchical structure enables the modeling of regional and climate-specific variability, creating a robust framework to account for heterogeneity in the data. This approach helps in improving the model’s robustness and ensures more accurate predictions across diverse environmental conditions.
 
-We can use maths by including latex between dollar signs, for instance $\theta$.
+In this model, random effects are included to account for group-level variability at cross regions and year levels. Region-specific random effects (\(\gamma_{\text{region}}\)) capture local environmental differences, such as microclimates or soil conditions, allowing the model to adjust predictions for region with consistently earlier or later flowering patterns. Similarly, year-specific random effects (\(\delta_{\text{year}}\)) account for deviations in flowering dates caused by year-to-year climatic anomalies, such as warmer winters or extreme weather events. These random effects are modeled as zero-centered normal distributions with variances (\(\sigma_{\gamma}\) and \(\sigma_{\delta}\)) that reflect the variability among regions and years. By incorporating random effects, the model accommodates unobserved heterogeneity, will improves prediction accuracy, and realistically captures the hierarchical structure of the data.
+
+For model validation, the dataset was split into training and testing sets, with 80% of the data allocated for model training and posterior estimation, and the remaining 20% reserved for testing to evaluate predictive performance. An overview of the training and testing datasets is presented in @fig-view, providing a summary of the data The model's accuracy was assessed using the Root Mean Squared Error (RMSE)
+
+```{r}
+#| label: fig-view  # For citation in Quarto
+#| tbl-cap: "Training and Testing Data Evaluation Results"  # Caption for the table
+#| echo: false  # Suppress code in output
+#| warning: false 
+#| message: false
+#| fig-align: center
+
+# Calculate summary statistics
+test_summary <- data.frame(
+  Statistic = c("Unique Stations", "Mean Flower Time", "Mean Temperature", "Mean Full Blossom"),
+  Value = c(
+    length(unique(test$station_id)),
+    mean(test$flower_day_in_numeric, na.rm = TRUE),
+    mean(test$month_mean_temp, na.rm = TRUE),
+    mean(test$full_bloom_day_in_numeric, na.rm = TRUE)
+  ),
+  Dataset = "Test Data"
+)
+
+train_summary <- data.frame(
+  Statistic = c("Unique Stations", "Mean Flower Time", "Mean Temperature", "Mean Full Blossom"),
+  Value = c(
+    length(unique(train$station_id)),
+    mean(train$flower_day_in_numeric, na.rm = TRUE),
+    mean(train$month_mean_temp, na.rm = TRUE),
+    mean(train$full_bloom_day_in_numeric, na.rm = TRUE)
+  ),
+  Dataset = "Train Data"
+)
+
+# Combine summaries
+summary_data <- rbind(test_summary, train_summary)
+
+# Create sakura-themed visualization with transparency
+ggplot(summary_data, aes(x = Statistic, y = Value, fill = Dataset)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7, alpha = 0.7) + # Add transparency with alpha
+  geom_text(
+    aes(label = round(Value, 1)), 
+    position = position_dodge(width = 0.7), 
+    vjust = -0.2, 
+    size = 2.5,
+    color = "black"
+  ) +
+  scale_fill_manual(
+    values = c("Test Data" = rgb(255, 193, 204, maxColorValue = 255, alpha = 180),  # Sakura pink with transparency
+               "Train Data" = rgb(163, 214, 167, maxColorValue = 255, alpha = 180)) # Soft green with transparency
+  ) +
+  labs(
+    title = "Comparison of Train and Test Data",
+    x = "Statistic",
+    y = "Value"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16, color = "#6A1B9A"),
+    plot.subtitle = element_text(hjust = 0.5, size = 12, color = "#6A1B9A"),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    legend.title = element_blank(),
+    legend.position = "top"
+  )
+```
+
+# Result
+
+## Result of the Prediction Model
+
+### Model Performance Evaluation
+
+The model’s performance was evaluated using Root Mean Squared Error (RMSE), Mean Absolute Error (MAE), and \(R^2\), providing a comprehensive assessment of accuracy and explanatory power. The RMSE was 3.101 for the training set and 3.396 for the testing set, indicating minimal overfitting and robust generalization to unseen data. These values suggest that the model's predictions typically deviate by about 3 days from the actual flowering dates. Similarly, the MAE values of 2.363 (training) and 2.586 (testing) highlight the model’s precision. The high \(R^2\) values, 0.965 for training and 0.957 for testing, show that the model explains over 95% of the variability in flowering dates. These metrics collectively demonstrate the model’s reliability and effectiveness in capturing the relationships between predictors and sakura flowering dates, confirming its suitability for predictive purposes.
+
+```{r}
+#| label: tbl-rmse  # For citation in Quarto
+#| tbl-cap: "Training and Testing Data Evaluation Results"  # Caption for the table
+#| echo: false  # Suppress code in output
+#| warning: false 
+#| message: false
+#| fig-align: center
+# === Step 3: Generate Predictions ===
+# Training predictions
+train_predictions <- posterior_predict(flower_model)
+train$predicted_flower_day <- colMeans(train_predictions)
+
+# Testing predictions
+test_predictions <- posterior_predict(flower_model, newdata = test)
+test$predicted_flower_day <- colMeans(test_predictions)
+
+# === Step 4: Define Metrics Calculation Function ===
+# Define a function to calculate RMSE, MAE, and R^2
+calculate_metrics <- function(actual, predicted) {
+  rmse <- sqrt(mean((actual - predicted)^2))  # Root Mean Squared Error
+  mae <- mean(abs(actual - predicted))       # Mean Absolute Error
+  r_squared <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))  # R^2
+  return(c(RMSE = rmse, MAE = mae, R2 = r_squared))
+}
+
+# === Step 5: Evaluate the Model ===
+# Calculate metrics for training data
+train_metrics <- calculate_metrics(train$flower_day_in_numeric, train$predicted_flower_day)
+
+# Calculate metrics for testing data
+test_metrics <- calculate_metrics(test$flower_day_in_numeric, test$predicted_flower_day)
+
+# Combine metrics into a table
+metrics_table <- data.frame(
+  Metric = c("RMSE", "MAE", "R^2"),
+  Training = train_metrics,
+  Testing = test_metrics
+)
+
+# === Step 6: Display Evaluation Metrics Table ===
+kable(
+  metrics_table,
+  digits = 3,
+  caption = "Training and Testing Data Evaluation Results",
+  booktabs = TRUE
+)
 
 
-# Results
+```
 
-Our results are summarized in @tbl-modelresults.
+### Fixed Effects Coefficients with 95% Credible Intervals
+
+The @fig-fix highlights the relationships between key predictors and sakura flowering dates based on the Bayesian hierarchical model. The intercept (\(-47.4751\)) represents the expected flowering date when all predictors are zero, though it’s mainly a baseline without much practical interpretation since predictors like temperature and location are scaled.
+
+Monthly mean temperature has a clear and significant effect. For every 1°C increase, the flowering date is delayed by about 0.33 days, with a credible interval (\([0.2599, 0.4017]\)) that excludes zero. Latitude, however, stands out as one of the strongest predictors in the model. With a coefficient of \(4.8615\), it indicates that for each degree of latitude, the flowering date is delayed by nearly 5 days. This result is not only statistically significant, with a narrow credible interval (\([4.4334, 5.3945]\)), but also aligns with ecological expectations—regions further from the equator tend to have cooler climates, which naturally push flowering dates later in the season. Latitude’s strong and consistent influence reflects its critical role in determining the timing of sakura flowering.
+
+Longitude, in contrast, has a much smaller and less certain effect. The coefficient (\(-0.2695\)) suggests that flowering may occur earlier as longitude increases, but the credible interval (\([-0.7217, 0.1194]\)) includes zero. This uncertainty means longitude’s impact is less clear, and it likely plays a minor role compared to temperature and latitude.
+
+```{r}
+#| label: fig-fix   # For citation in Quarto
+#| tbl-cap: "Fixed Effects Coefficients with 95% Credible Intervals"  # Caption for the table
+#| echo: false  # Suppress code in output
+#| warning: false 
+#| message: false
+#| fig-align: center
+# Extract fixed effects coefficients and standard errors
+fixed_effects <- flower_model$coefficients[1:4]  # Extract only the first 4 fixed effects
+fixed_se <- flower_model$ses[1:4]  # Extract standard errors for fixed effects
+
+# Calculate credible intervals for fixed effects only
+credible_intervals <- posterior_interval(flower_model, pars = names(fixed_effects), prob = 0.95)
+
+# Combine results into a table
+fixed_effects_table <- data.frame(
+  Parameter = names(fixed_effects),
+  Estimate = fixed_effects,
+  Std_Error = fixed_se,
+  `2.5%` = credible_intervals[, 1],
+  `97.5%` = credible_intervals[, 2]
+)
+
+# Display the table in a formatted manner
+library(knitr)
+kable(
+  fixed_effects_table,
+  digits = 4,
+  caption = "Fixed Effects Coefficients with 95% Credible Intervals"
+)
+
+
+
+```
+
+### Performance Metrics for Random Effects (Year and Region)
+
+The random effects for year and region play a critical role in capturing temporal and spatial variability in sakura flowering dates and are shown in @tbl-ram . The Root Mean Squared Error (RMSE) of **4.282** shows that, on average, flowering dates deviate by approximately 4.3 days due to differences between years and regions. This highlights the substantial adjustments made by the random effects to account for annual climate trends and regional environmental factors. Similarly, the Mean Absolute Error (MAE) of **3.186** indicates that typical adjustments are around 3.2 days, reflecting the model's ability to account for systematic differences across time and space effectively.
+
+The variance explained by the random effects (\(R^2 = 1.000\)) demonstrates that the model perfectly partitions the variability attributed to year and region. Year-based random effects capture temporal patterns, such as global warming or specific climate anomalies, ensuring that flowering trends align with observed climate changes. Region-based random effects, on the other hand, account for spatial heterogeneity influenced by geographic and environmental differences, such as latitude and local climate conditions. Together, these random effects ensure that the model accurately reflects both temporal and spatial dynamics.
+
+
+```{r}
+#| label: tbl-ram   # For citation in Quarto
+#| tbl-cap: "Performance Metrics for Random Effects"  # Caption for the table
+#| echo: false  # Suppress code in output
+#| warning: false 
+#| message: false
+#| fig-align: center
+# === Step 1: Extract Random Effects ===
+# Extract station-level and year-level random effects
+random_effects <- ranef(flower_model, condVar = TRUE)
+
+# Station-level random effects
+station_random_effects <- as.data.frame(random_effects$station_name)
+station_random_effects$Station <- rownames(station_random_effects)
+
+# Year-level random effects
+year_random_effects <- as.data.frame(random_effects$year)
+year_random_effects$Year <- rownames(year_random_effects)
+
+# Combine into a single data frame for evaluation
+combined_random_effects <- bind_rows(
+  station_random_effects %>% rename(ID = Station),
+  year_random_effects %>% rename(ID = Year)
+)
+
+# Rename columns for clarity
+colnames(combined_random_effects) <- c("Estimate", "ID")
+
+# === Step 2: Calculate Metrics ===
+# RMSE for random effects
+rmse_random <- sqrt(mean(combined_random_effects$Estimate^2))
+
+# MAE for random effects
+mae_random <- mean(abs(combined_random_effects$Estimate))
+
+# Variance Explained (R^2)
+variance_random_effects <- var(combined_random_effects$Estimate)
+total_variance <- sum(variance_random_effects)  # Assume total variance = variance of random effects
+r_squared_random <- variance_random_effects / total_variance
+
+# Ensure all metrics have valid values
+r_squared_random <- ifelse(is.nan(r_squared_random), 0, r_squared_random)  # Handle NaN cases
+
+# === Step 3: Display Results ===
+random_effects_metrics <- data.frame(
+  Metric = c("RMSE", "MAE", "Variance Explained (R^2)"),
+  Value = c(rmse_random, mae_random, r_squared_random)
+)
+
+# Print the table
+library(knitr)
+kable(
+  random_effects_metrics,
+  digits = 3,
+  caption = "Performance Metrics for Random Effects",
+  booktabs = TRUE
+)
+
+
+```
+
+
+```{r}
+#| label: fig-obs   # For citation in Quarto
+#| tbl-cap: "Testing Data: Observed vs Predicted Flowering Days"  # Caption for the table
+#| echo: false  # Suppress code in output
+#| warning: false 
+#| message: false
+#| fig-align: center
+# === Step 7: Visualize Results (Optional) ===
+# Scatter plot: Observed vs. Predicted (Training Data)
+ggplot(train, aes(x = flower_day_in_numeric, y = predicted_flower_day)) +
+  geom_point(color = "blue", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  labs(
+    x = "Observed Flowering Day (Train)",
+    y = "Predicted Flowering Day (Train)",
+    title = "Training Data: Observed vs Predicted Flowering Days"
+  ) +
+  theme_minimal()
+
+# Scatter plot: Observed vs. Predicted (Testing Data)
+ggplot(test, aes(x = flower_day_in_numeric, y = predicted_flower_day)) +
+  geom_point(color = "green", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  labs(
+    x = "Observed Flowering Day (Test)",
+    y = "Predicted Flowering Day (Test)",
+    title = "Testing Data: Observed vs Predicted Flowering Days"
+  ) +
+  theme_minimal()
+```
 
 ```{r}
 #| echo: false
@@ -364,10 +623,11 @@ Our results are summarized in @tbl-modelresults.
 #| warning: false
 #| message: false
 
-library(rstanarm)
+#library(rstanarm)
+#library(modelsummary)
 
-first_model <-
-  readRDS(file = here::here("models/first_model.rds"))
+#first_model <-
+#  readRDS(file = here::here("models/first_model.rds"))
 ```
 
 ```{r}
@@ -377,13 +637,13 @@ first_model <-
 #| tbl-cap: "Explanatory models of flight time based on wing width and wing length"
 #| warning: false
 
-modelsummary::modelsummary(
-  list(
-    "First model" = first_model
-  ),
-  statistic = "mad",
-  fmt = 2
-)
+#modelsummary::modelsummary(
+#  list(
+#    "First model" = first_model
+#  ),
+#  statistic = "mad",
+#  fmt = 2
+#)
 ```
 
 
@@ -459,9 +719,9 @@ In @fig-ppcheckandposteriorvsprior-2 we compare the posterior with the prior. Th
 #| fig-subcap: ["Trace plot", "Rhat plot"]
 #| layout-ncol: 2
 
-plot(first_model, "trace")
+#plot(first_model, "trace")
 
-plot(first_model, "rhat")
+#plot(first_model, "rhat")
 ```
 
 

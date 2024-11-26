@@ -23,5 +23,5 @@ train_data <- training(split)
 test_data <- testing(split)
 
 # Save training and testing data as CSV files
-write_csv(train_data, here("data", "03-model_data", "train_data.csv"))
-write_csv(test_data, here("data", "03-model_data", "test_data.csv"))
+write_parquet(train_data, here("data", "03-model_data", "train_data.parquet"))
+write_parquet(test_data, here("data", "03-model_data", "test_data.parquet"))

@@ -55,3 +55,7 @@ historical_data_cleaned <- historical_data %>%
 #### Save data ####
 write_csv(cleaned_sakura_data, here("data", "02-analysis_data", "analysis_modern_sakura_data.csv"))
 write_csv(historical_data_cleaned, here("data", "02-analysis_data", "analysis_historical_sakura_data.csv"))
+
+# Save as Parquet
+write_parquet(cleaned_sakura_data, here("data", "02-analysis_data", "analysis_modern_sakura_data.parquet"))
+write_parquet(historical_data_cleaned, here("data", "02-analysis_data", "analysis_historical_sakura_data.parquet"))
