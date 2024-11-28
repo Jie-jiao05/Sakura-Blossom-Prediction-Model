@@ -114,7 +114,7 @@ kable(sakura_sample,
       col.names = c("ID", "Location", "Latitude", "Longitude", "Year", "Month",
                     "Flower Day", "Full Bloom Day", "Mean Temp"))
 ```
-For historical sakura data, since the earliest data in this dataset can be traced back to 812, however the accuracy of temperature measurements in the early years is questionable, and data being recorded only in the Kyoto area, there may be some unavoidable bias. Therefore, when building the prediction model, we will only use modern sakura data for fitting, and historical data will only serve as a comparison to help us understand the historical situation.
+For historical sakura data is provided by Prof. Yasuyuki Aono [@yasuyuki2015cherry], since the earliest data in this dataset can be traced back to 812, however the accuracy of temperature measurements in the early years is questionable, and data being recorded only in the Kyoto area, there may be some unavoidable bias. Therefore, when building the prediction model, we will only use modern sakura data for fitting, and historical data will only serve as a comparison to help us understand the historical situation.
 
 The outcome variable in this study represents the flowering time of sakura blossoms. As part of the data refinement process, to enhance the reliability of the predictions, we converted the flowering and full bloom dates from the standard "yyyy-mm-dd" format into numerical values, enabling a more precise model fit. Additionally, since the dataset only includes sakura blossom data in Japan, the conclusions drawn from this study are limited to providing a reference for the flowering times of sakura blossoms within Japan and do not consider the influence of different varieties of sakura.
 
@@ -329,6 +329,9 @@ Background details and diagnostics are included in [Appendix -@sec-model-details
 
 ## Model set-up
 This study uses a Bayesian Hierarchical Linear Regression model to analyze the relationship between sakura flowering dates and various predictors, implemented using the stan_glmer function from the rstanarm package @rstanarm in R [@citeR] and use the default priors from rstanarm @rstanarm. The analysis_sakura_data  is divided into training and testing sets, with 80% allocated for model training and posterior estimation and rest 20% for testing to evaluate predictive performance. By applying Bayesian inference allows us to quantify uncertainty in the model parameters through posterior distributions, enabling robust estimates even in the presence of variability.
+
+### Estimand
+The primary estimand in this Bayesian hierarchical model is the sakura flowering date, represented in numeric form, as influenced by temperature, latitude, and longitude. The model estimates both the fixed effects of these predictors and the random effects associated with yearly and regional variations, capturing localized deviations and inter-annual trends. Additionally, the model estimates residual variance to account for unexplained variability, ensuring a comprehensive understanding of the factors driving sakura phenology. These estimands enable the quantification of the relationship between climatic and geographic predictors and the timing of sakura blooming, while accounting for spatial and temporal heterogeneity.
 
 
 ###  Bayesian Hierarchical Linear Regression Model
@@ -599,16 +602,56 @@ kable(
 
 ```
 
-### Fixed Effects Coefficients with 95% Credible Intervals
+### Posterior: Fixed Effects Coefficients with 95% Credible Intervals
 
-The @fig-fix highlights the relationships between key predictors and sakura flowering dates based on the Bayesian hierarchical model. The intercept -47.4751 represents the expected flowering date when all predictors are zero, though it’s mainly a baseline without much practical interpretation since predictors like temperature and location are scaled.
+The @tbl-fix highlights the relationships between key predictors and sakura flowering dates based on the Bayesian hierarchical model and the distribution of posterior are shown in @fig-pos-dis. The intercept -47.4751 represents the expected flowering date when all predictors are zero, though it’s mainly a baseline without much practical interpretation since predictors like temperature and location are scaled.
 
 Monthly mean temperature has a clear and significant effect. For every 1°C increase, the flowering date is delayed by about 0.33 days, with a credible interval [0.2599, 0.4017] that excludes zero. Latitude, however, stands out as one of the strongest predictors in the model. With a coefficient of 4.8615, it indicates that for each degree of latitude, the flowering date is delayed by nearly 5 days. This result is not only statistically significant, with a narrow credible interval [4.4334, 5.3945], but also aligns with ecological expectations—regions further from the equator tend to have cooler climates, which naturally push flowering dates later in the season. Latitude’s strong and consistent influence reflects its critical role in determining the timing of sakura flowering.
 
 Longitude, in contrast, has a much smaller and less certain effect. The coefficient -0.2695 suggests that flowering may occur earlier as longitude increases, but the credible interval [-0.7217, 0.1194] includes zero. This uncertainty means longitude’s impact is less clear, and it likely plays a minor role compared to temperature and latitude.
+```{r}
+#| label: fig-pos-dis
+#| fig-cap: "Posterior Distributions"
+#| echo: false
+#| warning: false 
+#| message: false
+#| fig-align: center
+
+# Extract posterior samples for fixed effects
+posterior_samples <- as.data.frame(flower_model)
+
+# Select relevant predictors from the posterior samples
+predictor_columns <- c("(Intercept)", "latitude", "longitude", "month_mean_temp")
+posterior_subset <- posterior_samples[, predictor_columns]
+
+# Transform data into long format for ggplot
+posterior_long <- posterior_subset %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "Predictor",
+    values_to = "Estimate"
+  )
+
+# Create the posterior distribution plot
+ggplot(posterior_long, aes(x = Estimate, fill = Predictor)) +
+  geom_density(alpha = 0.7) +
+  facet_wrap(~ Predictor, scales = "free", ncol = 2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Posterior Distributions of Coefficients",
+    x = "Coefficient Estimate",
+    y = "Density"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5), # Center the title
+    legend.position = "none"
+  )
+
+```
 
 ```{r}
-#| label: fig-fix   # For citation in Quarto
+#| label: tbl-fix   # For citation in Quarto
 #| tbl-cap: "Fixed Effects Coefficients with 95% Credible Intervals"  # Caption for the table
 #| echo: false  # Suppress code in output
 #| warning: false 
@@ -640,7 +683,7 @@ kable(
 
 ```
 
-### Performance Metrics for Random Effects (Year and Region)
+### Posterior: Performance Metrics for Random Effects (Year and Region)
 
 The random effects for year and region play a critical role in capturing temporal and spatial variability in sakura flowering dates and are shown in @tbl-ram . The Root Mean Squared Error (RMSE) of 4.282 shows that, on average, flowering dates deviate by approximately 4.3 days due to differences between years and regions. This highlights the substantial adjustments made by the random effects to account for annual climate trends and regional environmental factors. Similarly, the Mean Absolute Error (MAE) of 3.186 indicates that typical adjustments are around 3.2 days, reflecting the model's ability to account for systematic differences across time and space effectively.
 
@@ -826,11 +869,13 @@ For a more precise prediction, several improvements should be implemented. First
 
 # Additional data details
 
+## Survey design and sampling techniques
+
 # Model details {#sec-model-details}
 
 ## Posterior predictive check
 
-In @fig-ppcheckandposteriorvsprior we implement a posterior predictive check. 
+In @fig-ppcheckandposteriorvsprior we implement a posterior predictive check and the distribution of posterior are show in @fig-pos-dis. 
 This shows the density overlay plot demonstrates a strong alignment between the observed sakura flowering dates and the model's posterior predictions. The observed density, represented by the dark blue line, closely matches the predictive densities (lighter blue lines) across most of the distribution, indicating that the model captures the central tendency and major patterns effectively. The primary peak around 80 is well-represented, showing the model's strength in predicting the most common flowering dates. Additionally, the secondary peak around 120 aligns reasonably well, suggesting the model's ability to handle more complex patterns, such as bimodal distributions. However, slight discrepancies are observed in the tails of the distribution, particularly below 40 and above 140, where the predictive densities deviate from the observed data. These divergences indicate potential challenges in capturing extreme values or outliers, which may be addressed by including additional predictors, such as microclimatic conditions or species-specific traits.
 
 
