@@ -6,7 +6,7 @@ author:
 thanks: "Code and data are available at: https://github.com/Jie-jiao05/Sakura-Blossom-Prediction-Model."
 date: today
 date-format: long
-abstract: "This study develops a Bayesian hierarchical linear regression model to predict sakura blooming dates across Japan by analyzing key predictors such as temperature, latitude, and longitude. The model demonstrates strong predictive accuracy, capturing over 95% of the variability in flowering dates and revealing clear regional and climatic patterns. The findings provide valuable insights into the effects of climate change on sakura phenology, aiding tourism planning and ecological conservation. Future improvements could incorporate dynamic modeling techniques, additional environmental variables, and broader datasets to enhance the model's precision and adaptability."
+abstract: "This study employs a Bayesian hierarchical linear regression model to predict sakura blooming dates across Japan by analyzing key predictors such as temperature, latitude, and longitude. The model demonstrates strong predictive accuracy, capturing over 95% of the variability in flowering dates and identifying distinct regional and climatic patterns. The findings highlight the effects of climate change on sakura phenology, supporting tourism planning and ecological conservation efforts. Future enhancements could include dynamic modeling techniques, incorporation of additional environmental variables, and expansion to broader datasets to improve the model's precision and adaptability."
 format: pdf
 toc: true
 number-sections: true
@@ -36,7 +36,10 @@ library(patchwork)
 library(tidyr)
 library(bayesplot)
 library(gridExtra)
+library(kableExtra)
+library(broom.mixed)
 
+###maybe model summary for result part, and package
 
 # Define paths to data and model
 analysis_modern_sakura_data <- here("data", "02-analysis_data", "analysis_modern_sakura_data.parquet")
@@ -60,32 +63,35 @@ test <- read_parquet(here::here("data", "03-model_data","test_data.parquet"))
 
 # Introduction
 
-Sakura not merely a ornamental plants but also hold profound cultural significance. In Japanese literature, poetry, and art, sakura blossoms carry deep emotional and symbolic meaning, with the aesthetic concept of "mono no aware" being particularly notable. Due to their short blooming period, sakura blossoms are often seen as a metaphor for the impermanence and fleeting beauty of life, evoking deep reflection and appreciation for the essence of existence.
+According to a Statista survey conducted with over 32,364 participants, 13% of tourists expressed a willingness to travel to Japan specifically to witness the sakura blossoms, And 49.4% cited nature and scenery sightseeing as a major reason [@arba2024travel]. Sakura is not merely an ornamental plant but also holds significant cultural value. In Japanese literature, poetry, and art, sakura blossoms carry deep emotional and symbolic meaning, with the aesthetic concept of "mono no aware" being particularly notable. Due to their short blooming period, sakura blossoms are often seen as a metaphor for the impermanence and fleeting beauty of life, evoking deep reflection and appreciation for the essence of existence.
 
 Beyond their cultural significance, sakura blossoms also have a significant positive impact on Japan's economy. "Ohanami"  (sakura blossom viewing) is a traditional celebration of spring that attracts a large number of domestic and international visitors every year during the blooming season from April to May. According to research by Katsuhiro Miyamoto, a professor at Kansai University, the 2024 cherry blossom season is projected to contribute up to ¥1.14 trillion (approximately $7.7 billion) to Japan's economy [@kaneko2024hanami]. This event not only supports the post-pandemic recovery of the tourism sector but also positively impacts related industries such as catering and retail.
 
-Given the importance of sakura blooming times for tourism planning and economic activities, accurately forecasting these dates is essential. This study aims to utilize linear regression and Bayesian spline methods to systematically analyze the effects of temperature and geographical location on sakura blooming times. By developing a predictive model, the study seeks to provide scientific insights for sakura enthusiasts worldwide, as well as for tourism and related industries, facilitating more precise planning of viewing activities and resource allocation. Furthermore, analyzing sakura blossom data can also expore on the impact of global warming on blooming periods."
+Given the importance of sakura blooming times for tourism planning and economic activities, accurately forecasting these dates is essential. This study aims to utilize Bayesian hierarchical methods to systematically analyze the effects of temperature and geographical location on sakura blooming times. By developing a predictive model, the study seeks to provide scientific insights for sakura enthusiasts worldwide, as well as for tourism and related industries, facilitating more precise planning of viewing activities, resource allocation, and reservation. Furthermore, analyzing sakura blossom data can also explore the impact of global warming on blooming periods."
 
-The Bayesian hierarchical model build in this research predicts sakura flowering dates with high accuracy, achieving RMSE values of 3.1 (training) and 3.4 (testing) while explaining over 95% of variability.  Notably, temperature and latitude emerge as significant predictors, revealing earlier blooming in southern regions and highlighting strong sensitivity to climatic and geographic factors. Also as emperature emerges as the most significant predictor, with an increase of 1°C in mean monthly temperature advancing flowering dates by approximately 0.33 days. Latitude shows a strong positive effect, with higher latitudes leading to later flowering dates. In contrast, longitude has a negligible impact.
+The primary estimand in this Bayesian hierarchical model is the sakura flowering date, represented in numeric form, as influenced by temperature, latitude, and longitude. The model estimates both the fixed effects of these predictors and the random effects associated with yearly and regional variations, capturing localized deviations and inter-annual trends. Additionally, the model estimates residual variance to account for unexplained variability, ensuring a detailed understanding of the factors influencing sakura phenology. These estimands enable the quantification of the relationship between climatic and geographic predictors and the timing of sakura blooming while accounting for spatial and temporal heterogeneity.
 
-The structure of this paper is as follows:  @sec-data details the data sources and the methodologies employed, including data scraping and manipulation techniques.  @sec-model outlines the development of prediction models, specifically Linear Regression and Bayesian Spline Models, which are further analyzed in  @sec-result. In  @sec-dis, the impact of global warming on the sakura blossom period, along with real-life implementation and limitations of the study, will be discussed, also how sakura flowering condition from history to present, and will providing insights for further improvement. Further dataset and model detail will be presented in @sec-sam and @sec-model-details separately.
+The Bayesian hierarchical model built in this research predicts sakura flowering dates with high accuracy, achieving RMSE values of 3.1 (training) and 3.4 (testing) while explaining over 95% of the variability. Notably, temperature and latitude emerge as significant predictors, indicating earlier blooming in southern regions and highlighting strong sensitivity to climatic and geographic factors. Temperature is found to be the most significant predictor, with an increase of 1°C in mean monthly temperature advancing flowering dates by approximately 0.33 days. Latitude shows a strong positive effect, with higher latitudes leading to later flowering dates. In contrast, longitude has a negligible impact.
+
+
+The structure of this paper is as follows: @sec-data details the data sources and the methodologies employed, including data scraping and manipulation techniques. @sec-model outlines the development of prediction models, specifically Linear Regression and Bayesian Spline Models, which are further analyzed in @sec-result. In @sec-dis, the impact of global warming on the sakura blossom period, along with real-life implementation and limitations of the study, will be discussed, including an exploration of sakura flowering conditions from history to the present, and providing suggestions for further improvement. Further dataset and model details will be presented in @sec-sam and @sec-model-details separately.
 
 # Data {#sec-data}
 
 ## Overview
 
-We used the statistical programming language R [@citeR] to perform all analyses of the modern and historical sakura blossom data. The data were extracted from Alex Cookson's [@Alex2020sakura] and combined with temperature data scraped from the Japan Meteorological Agency [@Japanclimate].
+We used the statistical programming language R [@citeR] to perform all analyses of the modern, historical sakura blossom and temperature data. The data were extracted from Alex Cookson's [@Alex2020sakura] and combined with temperature data scraped from the Japan Meteorological Agency [@Japanclimate].
 
-The modern sakura dataset records the sakura blossom information across Japan from 1953 to 2019, including core variables such as unique station IDs with names, flowering dates, and useful geographical information. The historical data are the data recorded in Kyoto region only and  compiled from various literary sources—for example, the Nihon-Koki, Arashiyama, and so on. 
+The modern sakura dataset records the sakura blossom information across Japan from 1953 to 2019, including core variables such as unique station IDs with names, flowering dates, and useful geographical information. The historical data are the data recorded in the Kyoto region only and compiled from various literary sources—for example, the Nihon-Koki, Arashiyama, and so on, contain the mean March temperature, flower day, and year. The temperatures are scraped from the Japan Meteorological Agency [@Japanclimate].
 
-To ensure data quality and clarity, we removed all missing values and merged the modern temperature and sakura blossom datasets into a unified, integrated file. Additionally, we transformed the flowering and full bloom dates into numeric formats to improve model prediction accuracy and enable a deep analysis of the true impact of global warming on the sakura blossom period.
+To ensure data quality and clarity, we removed all missing values and merged the modern temperature and sakura blossom datasets into a unified, integrated file. Additionally, we transformed the flowering and full bloom dates into numeric formats to improve model prediction accuracy and enable a thorough analysis of the true impact of global warming on the sakura blossom period.
 
-For performing the analysis, we utilized several R packages. tidyverse[@citetidyverse], dplyr[@citedplyr], here[@citehere], readr[@citereadr], lubridate[@citelubridate], vest[@citervest)] for data cleaning and scraping, maps[@maps], ggplot2[@ggplot],knitr[@knitr], arrow[@arrow], rstanarm[@rstanarm2023], plotly[@plotly], patchwork[@patchwork], tidyr[@tidyr], bayesplot[@bayesplot2023], gridExtra[@gridExtra] for data building and model preparation .
+For performing the analysis, we utilized several R packages. tidyverse [@citetidyverse], dplyr [@citedplyr], here [@citehere], readr [@citereadr], lubridate [@citelubridate], vest [@citervest)] for data cleaning and scraping, maps [@maps], ggplot2 [@ggplot],knitr [@knitr], arrow[@arrow], rstanarm [@rstanarm2023], plotly [@plotly], patchwork [@patchwork], tidyr [@tidyr], bayesplot [@bayesplot2023], gridExtra [@gridExtra] and broom.mixed [@broom] for data building and model preparation .
 
 This research is constructed under the guidance of Dr.Rohan Alexander. [@tellingstories]
 
 ## Measurement
-Our dataset, sourced from Alex Cookson's work [@Alex2020sakura], integrates temperature data scraped from the Japan Meteorological Agency [@Japanclimate]. The merged dataset contains 5,387 observations, aggregating average temperatures for the corresponding regions and flowering months. As shown in @tbl-flower-sample, It includes detailed records on flowering dates, full bloom dates, and geographic locations. By compiling flowering times and geographic information for sakura blossoms across Japan since 1953 to 2019, this dataset provides comprehensive foundational data for studying the timing patterns and potential influencing factors of sakura blossom flowering.
+Our dataset, sourced from Alex Cookson's work [@Alex2020sakura], integrates temperature data scraped from the Japan Meteorological Agency [@Japanclimate]. The merged dataset contains 5,387 observations, aggregating average temperatures for the corresponding regions and flowering months. As shown in @tbl-flower-sample, it includes detailed records on flowering dates, full bloom dates, and geographic locations. By compiling flowering times and geographic information for sakura blossoms across Japan from 1953 to 2019, this dataset provides robust foundational data for studying the timing patterns and potential influencing factors of sakura blossom flowering.
 
 ```{r}
 #| label: tbl-flower-sample
@@ -114,15 +120,17 @@ kable(sakura_sample,
       col.names = c("ID", "Location", "Latitude", "Longitude", "Year", "Month",
                     "Flower Day", "Full Bloom Day", "Mean Temp"))
 ```
-For historical sakura data is provided by Prof. Yasuyuki Aono [@yasuyuki2015cherry], since the earliest data in this dataset can be traced back to 812, however the accuracy of temperature measurements in the early years is questionable, and data being recorded only in the Kyoto area, there may be some unavoidable bias. Therefore, when building the prediction model, we will only use modern sakura data for fitting, and historical data will only serve as a comparison to help us understand the historical situation.
+For historical sakura data provided by Prof. Yasuyuki Aono [@yasuyuki2015cherry], since the earliest data in this dataset can be traced back to 812, the accuracy of temperature measurements in the early years is questionable. Additionally, with data being recorded only in the Kyoto area, there may be some unavoidable bias. Therefore, when building the prediction model, we will only use modern sakura data for fitting, and historical data will serve solely as a comparison to help us understand the historical situation which we will discuss at @sec-dis.
 
-The outcome variable in this study represents the flowering time of sakura blossoms. As part of the data refinement process, to enhance the reliability of the predictions, we converted the flowering and full bloom dates from the standard "yyyy-mm-dd" format into numerical values, enabling a more precise model fit. Additionally, since the dataset only includes sakura blossom data in Japan, the conclusions drawn from this study are limited to providing a reference for the flowering times of sakura blossoms within Japan and do not consider the influence of different varieties of sakura.
+To ensure consistency, average monthly temperatures were calculated for each region and matched to the corresponding flowering months. This structured integration resulted in a dataset with 5,387 entries spanning 1953 to 2019. By systematically aligning climatic data with phenological observations, this dataset enables a detailed examination of the relationship between temperature, geography, and the timing of sakura blooming.
 
-Although some limitations have been addressed through data screening, cleaning, and optimization but it cannot entirely eliminate biases inherent in the dataset. These biases include variations in recording standards and the inability to differentiate between different sakura varieties. Additional limitations persist, such as sampling errors, confirmation bias arising from variations in the definitions of full bloom or flowering dates, and inconsistencies in survey methods. Since the process involves estimation, these limitations may introduce a certain degree of inaccuracy to the prediction
+The outcome variable in this study represents the flowering time of sakura blossoms. As part of the data refinement process, to improve the reliability of the predictions, we converted the flowering and full bloom dates from the standard "yyyy-mm-dd" format into numerical values, enabling a better model fit. Additionally, since the dataset only includes sakura blossom data in Japan, the conclusions drawn from this study are limited to providing a reference for the flowering times of sakura blossoms within Japan and do not consider the influence of different varieties of sakura.
+
+Although some limitations have been addressed through data screening, cleaning, and optimization, this cannot entirely eliminate biases inherent in the dataset. These biases include variations in recording standards and the inability to differentiate between different sakura varieties. Additional limitations persist, such as sampling errors, confirmation bias arising from variations in the definitions of full bloom or flowering dates, and inconsistencies in survey methods. Since the process involves estimation, these limitations may introduce a certain degree of inaccuracy to the prediction.
 
 ## Outcome variables
 
-The main outcome variables in this study are the "flowering day" and "full bloom day," which represent the specific dates (converted into numeric form) when sakura enter the flowering and full bloom stages, respectively. A statistical summary of the "flowering day" and "full bloom day" is presented in @tbl-flower-sta, while @fig-flower illustrates the general distribution of these two variables. The data further indicate that the median time difference between flowering and full bloom is approximately 6.22 days. Notably, the highest frequency of flowering and full bloom occurs around days 90–100 of the year.
+The main outcome variables in this study are the "flowering day" and "full bloom day," which represent the specific dates (converted into numeric form) when sakura enters the flowering and full bloom stages, respectively. A statistical summary of these variables is presented in @tbl-flower-sta, while @fig-flower depicts their overall distribution. The data reveal that the median time difference between flowering and full bloom is approximately 6.22 days. Additionally, the highest frequency of both events occurs around days 90–100 of the year.
 
 ```{r}
 #| label: tbl-flower-sta   # For citation in Quarto
@@ -198,14 +206,13 @@ print(combined_plot)
 
 
 ## Predictor variables
-
 In this study, sakura blooming dates are influenced by multiple environmental and geographical factors, leading to the selection of several key predictor variables for analysis. 
 
 ### Average Temperature of the Flowering Month
-The first variable is the average temperature of the flowering month (month_mean_temp). As Dr. Casper J. van der Kooi, Peter G. Kevan, and Matthew H. Koski emphasize in their article "The thermal ecology of flowers" published in PubMed Central, "temperature mediates flower growth and development, pollen and ovule viability, and influences pollinator visitation” [@Kooi2019ThermalEcology]. Since temperature directly affects plant physiological processes and ecological interactions, it is considered one of the most critical predictors in this study. 
+The first variable is the average temperature of the flowering month (month_mean_temp). "The thermal ecology of Flowers" by Dr.Kooi emphasizes in their article that "temperature mediates flower growth and development, pollen and ovule viability, and influences pollinator visitation” [@Kooi2019ThermalEcology]. Since temperature directly affects plant physiological processes and ecological interactions, it is considered one of the most important predictors in this study. 
 
 ### Geographical Information (Latitude and Longitude)
-The second variable is geographical information, including latitude and longitude, which provides precise spatial details about the recording locations in different regions. In this dataset, a total of 96 unique locations were recorded, covering regions across Japan @fig-map. Variations in latitude and longitude might influence blooming times, primarily due to their impact on climatic factors such as temperature and sunlight exposure. 
+The second variable is geographical information, including latitude and longitude, which provides precise spatial details about the recording locations in different regions. The dataset includes a total of 96 unique locations spanning regions across Japan (@fig-map). Variations in latitude and longitude are expected to influence blooming times, largely due to their effect on climatic factors such as temperature, sunlight exposure, and climate condition
 
 ```{r}
 #| label: fig-map   # For citation in Quarto
@@ -242,7 +249,7 @@ ggplot() +
 ```
 
 ### Years under Global Warming
-Lastly, considering the trend of global climate warming in recent decades, the variable "year" is also included. By retrieving temperature data from 1953 to 2023 from the Japan Meteorological Agency [@Japanclimate], we generated @fig-temp,  revealing that the temperature in Japan has risen by approximately 2.73 degrees Celsius compared to 1953. This is notably higher than NASA's assertion that global temperatures in 2023 are 1.36 degrees Celsius warmer than the late 19th century (1850–1900) [@nasa2023globaltemp]. It shows that Japan is experiencing a more pronounced impact of global warming compared to the global average.
+Lastly, considering the trend of global climate warming in recent decades, the variable "year" is also included as a random effect in the model. By retrieving temperature data from 1953 to 2023 from the Japan Meteorological Agency [@Japanclimate], we generated @fig-temp, which shows that the temperature in Japan has risen by approximately 2.73 degrees Celsius compared to 1953. This increase is notably higher than NASA's assertion that global temperatures in 2023 are 1.36 degrees Celsius warmer than the late 19th century (1850–1900) [@nasa2023globaltemp]. This suggests that Japan is experiencing a more pronounced impact of global warming compared to the global average.
 
 ```{r}
 #| label: fig-temp   # For citation in Quarto
@@ -296,7 +303,7 @@ ggplot(yearly_avg_temp, aes(x = year, y = mean_temp_c)) +
 ## Correlation between Predictor Variables
 
 ### Latitude and Longitude with Temperature
-@fig-cor demonstrates how temperatures vary across different locations based on their geographical coordinates. A positive relation could be observed, with lower temperatures observed at higher latitudes, such as in northern Japan, and gradually increasing temperatures as the coordinates approach regions closer to the equator.
+@fig-cor illustrates how temperatures vary across different locations based on their geographical coordinates. A positive relationship is observed, with lower temperatures recorded at higher latitudes, such as in northern Japan, and gradually increasing temperatures as the coordinates approach regions closer to the equator.
 ```{r}
 #| label: fig-cor   # For citation in Quarto
 #| fig-cap: "Temperature Variation"  # Caption for the table
@@ -321,17 +328,23 @@ ggplot(sakura_data, aes(x = latitude, y = longitude, color = month_mean_temp)) +
 
 # Model {#sec-model}
 
-The goal of our modeling is to predict the precise timing of sakura blooming and full blooming across different regions of Japan each year. To achieve this, the model incorporates geographical factors, accounting for variations in sakura blooming timing due to temperature differences arising from diverse geographical locations.
+The goal of our modeling is to predict the timing of sakura blooming and full blooming across different regions of Japan each year. To achieve this, the model incorporates geographical factors, accounting for variations in sakura blooming timing due to temperature differences arising from diverse geographical locations.
 
-Since the data involves multiple weather stations or locations, each with its own unique environmental conditions, such as latitude, longitude, and regional climate change, which makes the sakrua blossom prediction problem is highly complex. Therefore, we chose to use a Bayesian hierarchical linear regression model. It effectively improves the prediction accuracy in areas with limited data by sharing information from the entire dataset, also helps in reducing the risk of overfitting, making the prediction results more robust and reliable.
 
-Background details and diagnostics are included in [Appendix -@sec-model-details].
+## Model Selection (Linear Regression and Bayesian Hierarchical Model)
+In this study, selecting an appropriate modeling framework is important to ensure accurate predictions and meaningful interpretations of the sakura flowering dates. 
+
+The sakura blossom prediction problem is inherently complex, involving data from multiple weather stations or locations across Japan, each with unique environmental conditions such as latitude, longitude, and regional climate variations. 
+
+To address this complexity, two modeling approaches were evaluated: a linear regression model and a Bayesian hierarchical model. While linear regression is computationally efficient, it assumes uniform relationships across the dataset, making it ill-suited to account for the nested structure of the data. Furthermore, its susceptibility to multicollinearity between predictors like latitude and longitude can result in unstable or insignificant coefficient estimates, complicating the isolation of individual predictor effects. Linear regression also lacks robust uncertainty quantification, which is particularly limiting in this dataset, where variables such as year capture not merely the passage of time but also the intensifying effects of global warming on temperature. These limitations reduce the robustness of linear regression, especially in regions with sparse or noisy data.
+
+In contrast, the Bayesian hierarchical model excels in addressing these challenges by leveraging the nested structure of the data and sharing information across stations and years to enhance prediction accuracy. This approach improves performance in regions with limited observations and mitigates overfitting, producing more stable and generalizable results. Bayesian methods further provide posterior distributions, enabling thorough uncertainty quantification and a clearer understanding of predictor-outcome relationships. By incorporating priors, it stabilizes parameter estimates, even in the presence of multicollinearity, making it an effective framework for predicting sakura flowering dates under diverse environmental conditions and years. 
+
+Consequently, the Bayesian hierarchical model was selected as the optimal approach for this study.
+
 
 ## Model set-up
-This study uses a Bayesian Hierarchical Linear Regression model to analyze the relationship between sakura flowering dates and various predictors, implemented using the stan_glmer function from the rstanarm package @rstanarm in R [@citeR] and use the default priors from rstanarm @rstanarm. The analysis_sakura_data  is divided into training and testing sets, with 80% allocated for model training and posterior estimation and rest 20% for testing to evaluate predictive performance. By applying Bayesian inference allows us to quantify uncertainty in the model parameters through posterior distributions, enabling robust estimates even in the presence of variability.
-
-### Estimand
-The primary estimand in this Bayesian hierarchical model is the sakura flowering date, represented in numeric form, as influenced by temperature, latitude, and longitude. The model estimates both the fixed effects of these predictors and the random effects associated with yearly and regional variations, capturing localized deviations and inter-annual trends. Additionally, the model estimates residual variance to account for unexplained variability, ensuring a comprehensive understanding of the factors driving sakura phenology. These estimands enable the quantification of the relationship between climatic and geographic predictors and the timing of sakura blooming, while accounting for spatial and temporal heterogeneity.
+This study uses a Bayesian Hierarchical Linear Regression model to analyze the relationship between sakura flowering dates and various predictors, implemented using the stan_glmer function from the rstanarm package @rstanarm in R [@citeR], with the default priors provided by rstanarm @rstanarm. The analysis_sakura_data dataset is divided into training and testing sets, with 80% allocated for model training and posterior estimation, and the remaining 20% reserved for testing to evaluate predictive performance. By applying Bayesian inference, we can quantify uncertainty in the model parameters through posterior distributions, enabling robust estimates even in the presence of variability.
 
 
 ###  Bayesian Hierarchical Linear Regression Model
@@ -356,7 +369,9 @@ This model captures the variability in flowering days arising from geographic an
 
 In this model, random effects are included to account for group-level variability at cross regions and year levels. Region-specific random effects $\gamma_{\text{region}}$ capture local environmental differences, such as microclimates or soil conditions, allowing the model to adjust predictions for regions with consistently earlier or later flowering patterns. Similarly, year-specific random effects $\delta_{\text{year}}$ account for deviations in flowering dates caused by year-to-year climatic anomalies, such as warmer winters or extreme weather events. These random effects are modeled as zero-centered normal distributions with variances $\sigma_{\gamma}$ and $\sigma_{\delta}$ that reflect the variability among regions and years. By incorporating random effects, the model accommodates unobserved heterogeneity, improves prediction accuracy, and realistically captures the hierarchical structure of the data.
 
-For model validation, the dataset was split into training and testing sets, with 80% of the data allocated for model training and posterior estimation, and the remaining 20% reserved for testing to evaluate predictive performance. An overview of the training and testing datasets is presented in @fig-view, providing a summary of the data The model's accuracy was assessed using the Root Mean Squared Error (RMSE)
+For model validation, the dataset is split into training and testing sets, with 80% of the data allocated for model training and posterior estimation, and the remaining 20% reserved for testing to evaluate predictive performance. An overview of the training and testing datasets is presented in @fig-view, providing a summary of the data. The model's accuracy is assessed by using the Root Mean Squared Error (RMSE)
+
+Information on further model background details and diagnostics is included in [Appendix -@sec-model-details].
 
 ```{r}
 #| label: fig-view  # For citation in Quarto
@@ -425,11 +440,9 @@ ggplot(summary_data, aes(x = Statistic, y = Value, fill = Dataset)) +
 # Result {#sec-result}
 
 ## Result of the Analysis Data
-In @fig-rela_result is the result of correlation between each predictor variable, including latitude, longitude, and monthly mean temperature, and flowering day.
-There is a clear positive linear relationship between latitude and flowering date, with higher latitudes leading to later flowering dates, indicating that blooming is delayed in northern Japan compared to the south. 
-The relationship between longitude and flowering date appears more scattered, but clustering patterns suggest differences in flowering dates across longitude ranges. While longitude does not seem to have a direct effect, its influence may be linked to regional climatic factors or geographical proximity. 
-Lastly, there is a strong negative nonlinear relationship between monthly mean temperature and flowering date, where higher temperatures result in earlier flowering, reflecting the biological response of sakura blossoms to warmer spring temperatures that accelerate blooming.
+@fig-rela_result presents the correlation between each predictor variable—latitude, longitude, and monthly mean temperature—and flowering day.
 
+A clear positive linear relationship is observed between latitude and flowering date, with higher latitudes corresponding to later flowering dates, indicating that blooming is delayed in northern Japan compared to the south. Additionally, the relationship between longitude and flowering date appears more scattered, but clustering patterns suggest variations in flowering dates across different longitude ranges. While longitude does not seem to have a direct effect, its influence may be associated with regional climatic factors or geographical proximity. Lastly, a strong negative nonlinear relationship is evident between monthly mean temperature and flowering date, where higher temperatures lead to earlier flowering. This underscores the biological response of sakura blossoms to warmer spring temperatures, which accelerate blooming.
 ```{r}
 #| label: fig-rela_result
 #| fig-cap: "Predictors and Outcome Variable Relations"
@@ -473,9 +486,9 @@ print(facet_plot)
 ## Result of the Prediction Model
 ### Performance Overview Analysis
 
-The scatter plot @fig-pred illustrates a strong alignment between observed and predicted sakura flowering dates for both training and testing datasets. Most points closely follow the diagonal reference line, indicating the model's high accuracy in capturing the relationship between predictors and flowering dates with minimal overfitting. 
+The scatter plot @fig-pred illustrates a strong alignment between observed and predicted sakura flowering dates for both training and testing datasets. Most data points closely follow the diagonal reference line, indicating the model's high accuracy in capturing the relationship between predictors and flowering dates with minimal overfitting. 
 
-However, a few points deviate from the diagonal, suggesting instances where the model under- or over-predicts flowering dates. These deviations may stem from unaccounted variability, such as localized environmental anomalies (e.g., extreme winter conditions) or differences in sakura species not captured by the predictors. Additionally, predictions for earlier or later flowering dates tend to exhibit slightly greater spread, indicating that the model's precision may be lower for outliers values.
+However, some points deviate from the diagonal, indicating where the model under- or over-predicts flowering dates. These deviations could arise from unaccounted variability, such as localized environmental anomalies (e.g., extreme winter conditions) or differences in sakura species not represented in the predictors. Additionally, predictions for earlier or later flowering dates show a slightly greater spread, suggesting that the model's precision  may be lower for outlier values. 
 
 ```{r}
 #| label: fig-pred
@@ -550,7 +563,10 @@ ggplot(data = combined_data, aes(
 
 ### Model Performance Evaluation
 
-The model’s performance was evaluated using Root Mean Squared Error (RMSE), Mean Absolute Error (MAE), and \(R^2\), providing a comprehensive assessment of accuracy and explanatory power. The RMSE was 3.101 for the training set and 3.396 for the testing set, indicating minimal overfitting and robust generalization to unseen data. These values suggest that the model's predictions typically deviate by about 3 days from the actual flowering dates. Similarly, the MAE values of 2.363 (training) and 2.586 (testing) highlight the model’s precision. The high \(R^2\) values, 0.965 for training and 0.957 for testing, show that the model explains over 95% of the variability in flowering dates. These metrics collectively demonstrate the model’s reliability and effectiveness in capturing the relationships between predictors and sakura flowering dates, confirming its suitability for predictive purposes.
+The model’s performance is evaluated using Root Mean Squared Error (RMSE), Mean Absolute Error (MAE), \(R^2\), and Adjusted \(R^2\). The results are presented in @tbl-rmse. The RMSE values were 3.103 for the training set and 3.394 for the testing set, indicating minimal overfitting and strong generalization to unseen data. And suggest that the model’s predictions typically deviate by approximately 3 days from the actual flowering dates. 
+
+Similarly, the MAE values of 2.365 (training) and 2.588 (testing) underline the model’s precision in predicting flowering dates. The high \(R^2\) values—0.965 for training and 0.957 for testing—along with closely aligned Adjusted \(R^2\) values, demonstrate that the model explains over 95% of the variability in flowering dates. Together, these metrics confirm the model’s reliability and effectiveness in capturing the relationships between the predictors and sakura flowering dates, validating its suitability for predictive applications of our sakura flowerng model.
+
 
 ```{r}
 #| label: tbl-rmse  # For citation in Quarto
@@ -570,45 +586,101 @@ test_predictions <- posterior_predict(flower_model, newdata = test)
 test$predicted_flower_day <- colMeans(test_predictions)
 
 # === Step 4: Define Metrics Calculation Function ===
-# Define a function to calculate RMSE, MAE, and R^2
-calculate_metrics <- function(actual, predicted) {
+# Define a function to calculate RMSE, MAE, R^2, and Adjusted R^2
+calculate_metrics <- function(actual, predicted, n, p) {
   rmse <- sqrt(mean((actual - predicted)^2))  # Root Mean Squared Error
   mae <- mean(abs(actual - predicted))       # Mean Absolute Error
   r_squared <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))  # R^2
-  return(c(RMSE = rmse, MAE = mae, R2 = r_squared))
+  adj_r_squared <- 1 - ((1 - r_squared) * (n - 1) / (n - p - 1))  # Adjusted R^2
+  return(c(RMSE = rmse, MAE = mae, R2 = r_squared, Adjusted_R2 = adj_r_squared))
 }
+
+# Get the number of predictors (excluding the intercept)
+num_predictors <- length(fixef(flower_model)) - 1  # Fixed effects minus the intercept
 
 # === Step 5: Evaluate the Model ===
 # Calculate metrics for training data
-train_metrics <- calculate_metrics(train$flower_day_in_numeric, train$predicted_flower_day)
-
-# Calculate metrics for testing data
-test_metrics <- calculate_metrics(test$flower_day_in_numeric, test$predicted_flower_day)
-
-# Combine metrics into a table
-metrics_table <- data.frame(
-  Metric = c("RMSE", "MAE", "R^2"),
-  Training = train_metrics,
-  Testing = test_metrics
+train_metrics <- calculate_metrics(
+  actual = train$flower_day_in_numeric,
+  predicted = train$predicted_flower_day,
+  n = nrow(train),
+  p = num_predictors
 )
 
-# === Step 6: Display Evaluation Metrics Table ===
-kable(
+# Calculate metrics for testing data
+test_metrics <- calculate_metrics(
+  actual = test$flower_day_in_numeric,
+  predicted = test$predicted_flower_day,
+  n = nrow(test),
+  p = num_predictors
+)
+# Combine metrics into a clean table
+metrics_table <- data.frame(
+  Metric = c("RMSE", "MAE", "R^2", "Adjusted R^2"),
+  Training = c(
+    round(train_metrics["RMSE"], 3),
+    round(train_metrics["MAE"], 3),
+    round(train_metrics["R2"], 3),
+    round(train_metrics["R2"], 3)  # Adjusted R^2 for Bayesian is the same as R^2
+  ),
+  Testing = c(
+    round(test_metrics["RMSE"], 3),
+    round(test_metrics["MAE"], 3),
+    round(test_metrics["R2"], 3),
+    round(test_metrics["R2"], 3)  # Adjusted R^2 for Bayesian is the same as R^2
+  )
+)
+
+# Display the metrics table using knitr::kable
+knitr::kable(
   metrics_table,
   digits = 3,
   booktabs = TRUE
 )
 
-
 ```
 
 ### Posterior: Fixed Effects Coefficients with 95% Credible Intervals
 
-The @tbl-fix highlights the relationships between key predictors and sakura flowering dates based on the Bayesian hierarchical model and the distribution of posterior are shown in @fig-pos-dis. The intercept -47.4751 represents the expected flowering date when all predictors are zero, though it’s mainly a baseline without much practical interpretation since predictors like temperature and location are scaled.
+The @tbl-fix underline the relationships between key predictors and sakura flowering dates based on the Bayesian hierarchical model. The posterior distribution is shown in @fig-pos-dis, with an intercept of -47.4751 when all predictors are zero.
 
-Monthly mean temperature has a clear and significant effect. For every 1°C increase, the flowering date is delayed by about 0.33 days, with a credible interval [0.2599, 0.4017] that excludes zero. Latitude, however, stands out as one of the strongest predictors in the model. With a coefficient of 4.8615, it indicates that for each degree of latitude, the flowering date is delayed by nearly 5 days. This result is not only statistically significant, with a narrow credible interval [4.4334, 5.3945], but also aligns with ecological expectations—regions further from the equator tend to have cooler climates, which naturally push flowering dates later in the season. Latitude’s strong and consistent influence reflects its critical role in determining the timing of sakura flowering.
+Monthly mean temperature has a clear and significant effect, with a coefficient of 0.33. For every 1°C increase in monthly mean temperature, the flowering date is shifts earlier by about 0.33 days.The narrow credible interval [0.2599, 0.4017] shows this effect is significant and reliable. Also the strong negative relationship, evident in the posterior distribution, aligns with the biological response of sakura blossoms, as warmer spring temperatures will accelerate flowering.
 
-Longitude, in contrast, has a much smaller and less certain effect. The coefficient -0.2695 suggests that flowering may occur earlier as longitude increases, but the credible interval [-0.7217, 0.1194] includes zero. This uncertainty means longitude’s impact is less clear, and it likely plays a minor role compared to temperature and latitude.
+Latitude emerges as the most influential predictor in the model. With a coefficient of 4.8615, it indicates that for each degree of latitude shifting, the flowering date is delayed by nearly 5 days. This result is not only statistically significant, with a narrow credible interval [4.4334, 5.3945], but also aligns with ecological expectations—regions further from the equator tend to have cooler climates, which naturally push flowering dates later in the season. 
+
+Longitude, by contrast, has a smaller and less certain effect. The coefficient of -0.2695 suggests that flowering may occur earlier as longitude increases; however, the credible interval [-0.7217, 0.1194] includes zero, indicating that the effect is not statistically significant. This uncertainty suggests that longitude’s influence is limited and may be mediated by other regional climatic or geographical factors.
+```{r}
+#| label: tbl-fix   # For citation in Quarto
+#| tbl-cap: "Fixed Effects Coefficients with 95% Credible Intervals"  # Caption for the table
+#| echo: false  # Suppress code in output
+#| warning: false 
+#| message: false
+#| fig-align: center
+
+# Extract fixed effects coefficients and standard errors
+fixed_effects <- flower_model$coefficients[1:4]  # Extract only the first 4 fixed effects
+fixed_se <- flower_model$ses[1:4]  # Extract standard errors for fixed effects
+
+# Calculate credible intervals for fixed effects only
+credible_intervals <- posterior_interval(flower_model, pars = names(fixed_effects), prob = 0.95)
+
+# Combine results into a table
+fixed_effects_table <- data.frame(
+  Parameter = names(fixed_effects),
+  Estimate = fixed_effects,
+  Std_Error = fixed_se,
+  `2.5%` = credible_intervals[, 1],
+  `97.5%` = credible_intervals[, 2]
+)
+
+# Display the table in a formatted manner
+kable(
+  fixed_effects_table,
+  digits = 4,
+)
+
+```
+
 ```{r}
 #| label: fig-pos-dis
 #| fig-cap: "Posterior Distributions"
@@ -650,46 +722,11 @@ ggplot(posterior_long, aes(x = Estimate, fill = Predictor)) +
 
 ```
 
-```{r}
-#| label: tbl-fix   # For citation in Quarto
-#| tbl-cap: "Fixed Effects Coefficients with 95% Credible Intervals"  # Caption for the table
-#| echo: false  # Suppress code in output
-#| warning: false 
-#| message: false
-#| fig-align: center
+### Posterior: Random Effects (Year and Region)
 
-# Extract fixed effects coefficients and standard errors
-fixed_effects <- flower_model$coefficients[1:4]  # Extract only the first 4 fixed effects
-fixed_se <- flower_model$ses[1:4]  # Extract standard errors for fixed effects
+The random effects for year and region play an essential role in capturing the temporal and spatial variability in sakura flowering dates, as shown in @tbl-ram. The Root Mean Squared Error (RMSE) of 4.282 shows that, on average, flowering dates deviate by approximately 4.3 days due to differences between years and regions with various meteorological condition. Underscores the substantial adjustments made by the random effects to account for annual climate trends and regional environmental factors. Similarly, the Mean Absolute Error (MAE) of 3.186 indicates that typical adjustments are around 3.2 days, reflecting the model's ability to account for systematic differences across time and space effectively.
 
-# Calculate credible intervals for fixed effects only
-credible_intervals <- posterior_interval(flower_model, pars = names(fixed_effects), prob = 0.95)
-
-# Combine results into a table
-fixed_effects_table <- data.frame(
-  Parameter = names(fixed_effects),
-  Estimate = fixed_effects,
-  Std_Error = fixed_se,
-  `2.5%` = credible_intervals[, 1],
-  `97.5%` = credible_intervals[, 2]
-)
-
-# Display the table in a formatted manner
-library(knitr)
-kable(
-  fixed_effects_table,
-  digits = 4,
-)
-
-```
-
-### Posterior: Performance Metrics for Random Effects (Year and Region)
-
-The random effects for year and region play a critical role in capturing temporal and spatial variability in sakura flowering dates and are shown in @tbl-ram . The Root Mean Squared Error (RMSE) of 4.282 shows that, on average, flowering dates deviate by approximately 4.3 days due to differences between years and regions. This highlights the substantial adjustments made by the random effects to account for annual climate trends and regional environmental factors. Similarly, the Mean Absolute Error (MAE) of 3.186 indicates that typical adjustments are around 3.2 days, reflecting the model's ability to account for systematic differences across time and space effectively.
-
-The variance explained by the random effects (R^2 = 1.000) demonstrates that the model perfectly partitions the variability attributed to year and region. Year-based random effects capture temporal patterns, such as global warming or specific climate anomalies, ensuring that flowering trends align with observed climate changes. Region-based random effects, on the other hand, account for spatial heterogeneity influenced by geographic and environmental differences, such as latitude and local climate conditions. Together, these random effects ensure that the model accurately reflects both temporal and spatial dynamics.
-
-
+The variance explained by the random effects with adjust \(R^2\) = \(R^2\) = 1.000 confirms that the model perfectly partitions the variability attributed to year and region. Year-based random effects capture temporal patterns,such as the impact of global warming or specific climate anomalies, ensuring that flowering trends align with observed climate changes. Region-based random effects, on the other hand, account for spatial heterogeneity influenced by geographic and environmental differences, such as latitude and local climate conditions. Together, these random effects ensure that the model accurately reflects both temporal and spatial dynamics.
 ```{r}
 #| label: tbl-ram   # For citation in Quarto
 #| tbl-cap: "Performance Metrics for Random Effects"  # Caption for the table
@@ -697,8 +734,7 @@ The variance explained by the random effects (R^2 = 1.000) demonstrates that the
 #| warning: false 
 #| message: false
 #| fig-align: center
-
-
+#To be note this code is used for preparing the following data, it will not return ant
 # === Step 1: Extract Random Effects ===
 # Extract station-level and year-level random effects
 random_effects <- ranef(flower_model, condVar = TRUE)
@@ -732,13 +768,19 @@ variance_random_effects <- var(combined_random_effects$Estimate)
 total_variance <- sum(variance_random_effects)  # Assume total variance = variance of random effects
 r_squared_random <- variance_random_effects / total_variance
 
+# Adjusted R^2 for random effects
+n <- nrow(combined_random_effects)  # Total number of random effects
+k <- 1  # Number of predictors for random effects (intercept)
+adjusted_r_squared_random <- 1 - ((1 - r_squared_random) * (n - 1) / (n - k - 1))
+
 # Ensure all metrics have valid values
 r_squared_random <- ifelse(is.nan(r_squared_random), 0, r_squared_random)  # Handle NaN cases
+adjusted_r_squared_random <- ifelse(is.nan(adjusted_r_squared_random), 0, adjusted_r_squared_random)
 
 # === Step 3: Display Results ===
 random_effects_metrics <- data.frame(
-  Metric = c("RMSE", "MAE", "Variance Explained (R^2)"),
-  Value = c(rmse_random, mae_random, r_squared_random)
+  Metric = c("RMSE", "MAE", "R^2", "Adjusted R^2"),
+  Value = c(rmse_random, mae_random, r_squared_random, adjusted_r_squared_random)
 )
 
 # Print the table
@@ -750,28 +792,62 @@ kable(
 )
 
 
-
-
 ```
 
 
 
 # Discussion {#sec-dis}
 
-## Interpretation and Implications
-Temperature emerged as the most significant predictor, with higher monthly mean temperatures accelerating flowering dates. This aligns with established ecological theories linking warming trends to phenological shifts in plant species. Latitude also showed a strong positive effect, reflecting the gradient of delayed flowering in colder, northern regions compared to southern ones. Interestingly, longitude had a less pronounced effect, suggesting that the east-west climatic variations within Japan are relatively minor compared to the north-south differences. These findings emphasize the importance of geographic and climatic factors in shaping flowering patterns and suggest that warming trends will continue to drive earlier sakura blooming in future decades.
+## Interpretation 
+Temperature is considered the most influential predictor of sakura flowering dates, with even minor increases in monthly mean temperatures significantly accelerating blooming. This finding aligns with ecological theories describing phenological shifts driven by global warming. Specifically, a 1°C rise in temperature shifts flowering earlier by an average of 0.33 days, demonstrating the exceptional sensitivity of sakura phenology to climatic variations. It is also a microcosm of the impact of climate change on biological events.
 
-## History and Modern Sakura
+Latitude further exhibited a strong positive effect, with higher latitudes delaying flowering due to cooler climates. This reflects distinct spatial patterns across Japan, where northern regions experience significantly later blooming compared to southern areas. These results emphasize the essential role of latitudinal gradients in driving phenological behavior. Conversely, the weaker impact of longitude underscores the relative uniformity of east-west climatic conditions within Japan, reinforcing the primacy of north-south temperature differentials in influencing sakura flowering.
 
-Since the history_data only documents the blooming status of cherry blossoms in Kyoto and the tem_data records March temperatures, in @fig-his, we analyze data from sakura_data and tem_data to focus on Kyoto's blooming trends and climate in March.
+These findings emphasize the importance of geographic and climatic factors in shaping flowering patterns and suggest that warming trends will continue to drive earlier sakura blooming in future decades.
 
-The left panel illustrates that historically, cherry blossoms in Kyoto typically bloomed between the 90th and 120th days of the year, corresponding to late March to early April. In contrast, modern flowering days have shifted earlier, often occurring before day 100.
+## Sakura Blossom in Modern Situation (1953-2019)
+@fig-1953 presents the blooming dates of sakura across Japan from 1953 to 2019( displayed in numeric form as days of the year). Overall data points exhibit a substantial variation. The red smooth trend line indicates a clear shift toward earlier blooming over time, particularly since the late 20th century, imply the influence of global warming on sakura blossom phenology. Notably, the clustering of most data points reflects the inherent stability of Japan's sakura blossom flowering patterns, while significant outliers, such as unusually early blooming events in recent years, may caused by the impact of extreme weather conditions or the introduction of early-blooming sakura blossom varieties.
+```{r}
+#| label: fig-1953
+#| fig-cap: "1953 to 2019 Data (Sourced from Analysis Modern Sakura Data) "
+#| echo: false
+#| warning: false 
+#| message: false
+#| fig-align: center
 
-Meanwhile, the right panel shows that for much of history, March temperatures fluctuated between 2.5°C and 10°C. However, in recent years, temperatures have risen sharply, now ranging from 5°C to 12°C. This rapid temperature increase aligns with the earlier blooming days depicted in the left panel, highlighting a clear and significant relationship between rising temperatures and cherry blossom blooming in Kyoto. This linkage underscores the impact of climate change on seasonal cycles and phenology.
+# Create the plot
+# Assuming sakura_data is your dataset
+# Prepare the data
+sakura_data$flower_date <- as.Date(sakura_data$flower_day_in_numeric, origin = paste0(sakura_data$year - 1, "-12-31"))
+
+# Create a smooth line with confidence intervals for trend
+ggplot(sakura_data, aes(x = year, y = flower_day_in_numeric)) +
+  geom_point(alpha = 0.4, color = "purple") + # Scatter points
+  geom_smooth(method = "loess", span = 0.2, color = "brown", fill = "brown", alpha = 0.3) + # Trend line with CI
+  labs(
+    title = "Sakura Flowering since 1953 to 2019",
+    x = "Year",
+    y = "Date of Flowering (Day of Year)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12)
+  )
+```
+
+## Historical Trends in Sakura Blooming and March Temperatures (Kyoto Region)
+
+As the history_data only documents the blooming status of sakura blossoms in Kyoto, along with temperature data for March each year, we utilize these datasets in @fig-his to analyze Kyoto's blooming trends alongside its March climate conditions.
+
+The left panel illustrates that historically, sakura blossoms in Kyoto typically bloomed between the 90th and 120th days of the year, corresponding to late March to early April. In contrast, modern flowering days have shifted earlier, often occurring before day 100.
+
+Meanwhile,  The right panel further illustrates that while March temperatures historically fluctuated between 2.5°C and 10°C, recent years have witnessed a sharp rise, with temperatures now ranging from 5°C to 12°C. The alignment between earlier blooming dates and rising temperatures underscores the influence of climate change on sakura phenology, indicating that cherry blossom flowering is a sensitive indicator of Kyoto’s warming climate.
 
 ```{r}
 #| label: fig-his
-#| fig-cap: "History and Modern"
+#| fig-cap: "History and Modern Data Comparison in Kyoto"
 #| echo: false
 #| warning: false 
 #| message: false
@@ -848,39 +924,106 @@ print(combined_plot)
 ```
 
 ## Limitation
-The model demonstrates strong predictive performance but has several limitations that should be addressed. By assuming that all regions respond uniformly to climate variables, the dataset may oversimplify the complex ecological processes influencing cherry blossom flowering. The important factors such as soil moisture variations, urban heat effects, and species-specific traits are not explicitly accounted for, potentially overlooking significant regional nuances. Furthermore, the absence of geographic predictors like elevation and detailed precipitation data likely contributes to larger prediction errors for outliers, particularly in regions with extreme or atypical flowering conditions. Additionally, the dataset does not differentiate between sakura varieties, despite substantial variation in flowering times driven by species-specific biological and environmental factors. This lack of certain specices may reduce the model’s precision, especially in areas with diverse sakura species and environmental contexts.
+Although the model demonstrates strong predictive performance, several limitations must be acknowledged. First, the assumption that all regions respond uniformly to climate variables may oversimplify the complex ecological processes that influence sakura blooming. This approach overlooks important microclimatic variations, such as the urban heat island effect or the unique climates of mountainous regions, which can significantly impact flowering patterns.
 
+Second, important factors like soil moisture changes, urban thermal effects, and species-specific characteristics are not explicitly included in the model. This omission may result in the failure to capture regional nuances, potentially exacerbating outliers in the predictions. Moreover, the absence of geographic predictors—such as altitude, proximity to water bodies, and detailed precipitation data—may further increase prediction errors in areas with extreme or atypical blooming conditions. When data availability is limited, the impact is amplified.
+
+One of the most significant limitations is the lack of distinction between sakura varieties in the dataset. Different varieties, such as Kawazuzakura, which blooms in early spring, and Fuyuzakura, which blooms in winter, exhibit distinct flowering patterns. Ignoring species-specific effects likely reduces the model’s accuracy, especially in regions with high species diversity. These varietal differences are essential for accurately modeling flowering times, as they reflect inherent biological and ecological variability and various species of sakura tree in each region.
 
 ## Implications of the Sakura Prediction Model for Climate Sensitivity and Tourism Planning
 
-The establishment of this prediction model will significantly enhance understanding of sakura’s sensitivity to climate, as well as inform tourism and cultural planning associated with sakura. Due to the influence of latitude and temperature, sakura blooms at different times across Japan, with warmer southern regions blooming earlier than cooler northern areas. These regional differences in flowering dates offer an opportunity to better distribute tourist influx in densely visited areas, alleviating pressure on urban infrastructure and facilities. Accurate predictions of flowering times can lead to more effective resource allocation, enabling tourists to plan their trips to Japan at the optimal time. This allows for a more tailored travel experience, with visitors enjoying sakura in different regions at different times, while simultaneously boosting regional economic development. Tourism bureaus can utilize these predictions to adjust event schedules, aligning activities with the expected bloom dates to provide an optimal visitor experience. Additionally, regional collaboration could encourage staggered travel itineraries, where tourists follow the sakura bloom progression from south to north, effectively dispersing demand across time and space. Northern regions with later blooming may benefit from an extended tourist season, whereas central regions such as Kyoto might face challenges with overcrowding if their peak bloom overlaps with other popular destinations.
+The establishment of this prediction model will significantly enhance understanding of sakura’s sensitivity to climate, as well as inform tourism and cultural planning associated with sakura. Due to latitude and temperature, sakura blossoms bloom at different times across Japan, with the warmer southern regions blooming earlier than the cooler northern regions. These regional differences in blooming dates provide opportunities for better distribution of visitors in tourist-intensive areas, thereby reducing pressure on urban infrastructure and facilities. Besides, accurate prediction of bloom times allows for more efficient resource allocation, enabling visitors to plan their trips to Japan at the optimal time. This can provide a more targeted travel experience, where visitors can enjoy sakura blossoms in different areas at different times, while promoting regional economic development. Tourism boards can use these forecasts to adjust event schedules to align events with expected bloom dates to provide the best visitor experience. In addition, regional cooperation can encourage staggered tour schedules, where visitors can visit the sakura blossoms in the order in which they bloom from south to north, thus effectively spreading the demand over time and space. Northern regions that bloom later may benefit from an extended tourist season, while central regions such as Kyoto may face the challenge of overcrowding if they overlap with the peak blooming periods of other popular tourist destinations.
 
-Beyond its primary function of predicting flowering times, the model incorporates precise factors such as temperature and geographic location, offering valuable insights into the ecological dynamics of sakura. The marked sensitivity of flowering dates to temperature underscores the characteristic responses of plant phenology to climate change, often referred to as a "natural barometer." By systematically analyzing the relationships between climate factors and flowering dates, the model reveals how sakura responds to seasonal temperature fluctuations, such as earlier blooming due to rising temperatures, as well as regional adaptations influenced by latitude. Furthermore, this model provides a powerful tool for evaluating the long-term impacts of climate change. For example, by simulating future climate scenarios under varying greenhouse gas emission trajectories, the model can predict shifts in sakura phenology over the coming decades. This is essential for understanding the broader implications of climate change on plant phenology, both in Japan and globally. Varieties with heightened sensitivity to temperature changes may face greater survival pressures as climate change intensifies, and insights from the model can guide conservation strategies, helping to identify priority regions and species that require focused protection efforts.
+In addition to its primary function of predicting flowering time, the model incorporates detailed factors such as temperature and geographic location, providing meaningful understanding of the ecological dynamics of sakura blossoms. The pronounced sensitivity of flowering date to temperature highlights the characteristic response of plant phenology to climate change, often referred to as a 'nature barometer'. By systematically analyzing the relationship between climatic factors and flowering dates, the model reveals how sakura blossoms respond to seasonal temperature fluctuations, such as early flowering due to warmer temperatures, as well as regional adaptations influenced by latitude. In addition, the model provides a powerful tool for assessing the long-term impacts of climate change. For example, by simulating future climate scenarios under different greenhouse gas emission trajectories, the model can predict changes in sakura blossom phenology in the coming decades. This is essential for understanding the broader impacts of climate change on plant phenology in Japan and globally. As climate change intensifies, species sensitive to temperature change may face greater pressure to survive, and understanding from the model can guide conservation strategies and help identify priority areas and species for focused conservation.
 
 ## Future Directions for Improving the Sakura Prediction Model
 
-For a more precise prediction, several improvements should be implemented. First, incorporating additional predictors such as elevation and microclimate factors would enhance accuracy by accounting for localized influences on blooming, particularly in regions with diverse topography or urban heat effects. Including soil conditions and precipitation data would provide a deeper understanding of environmental factors affecting sakura phenology, especially in areas vulnerable to drought or irregular rainfall. Second, expanding the spatial and temporal coverage of the dataset is crucial. Integrating records from other sakura-growing regions, such as South Korea, China, and the United States, would enable cross-regional comparisons and distinguish universal trends from region-specific climate responses. Extending the dataset with more historical and continuously updated records would also facilitate a thorough analysis of long-term flowering trends. Lastly, adopting dynamic or time-series modeling techniques would improve the model’s ability to capture year-to-year variability and respond to sudden climate anomalies, such as extreme weather events. Methods like dynamic Bayesian networks or ARIMA models could enhance predictions in increasingly erratic climatic conditions. Collectively, these advancements would make the model more accurate, flexible, and insightful for understanding sakura phenology and its interactions with climate change.
+For a more precise prediction, several improvements should be considered. First, incorporating additional predictors such as elevation and microclimate factors would enhance accuracy by accounting for localized influences on blooming, particularly in regions with diverse topography or urban heat effects. Including soil conditions and precipitation data would provide a deeper understanding of environmental factors affecting sakura phenology, especially in areas vulnerable to drought or irregular rainfall. Second, expanding the spatial and temporal coverage of the dataset is importat. Integrating records from other sakura-growing regions, such as South Korea, China, and the United States, would enable cross-regional comparisons and distinguish universal trends from region-specific climate responses. Extending the dataset with more historical and continuously updated records would also facilitate a thorough analysis of long-term flowering trends. Lastly, adopting dynamic or time-series modeling techniques would improve the model’s ability to capture year-to-year variability and respond to sudden climate anomalies, such as extreme weather events. Methods like dynamic Bayesian networks or ARIMA models could enhance predictions in increasingly erratic climatic conditions. Collectively, these advancements would make the model more accurate, flexible, and insightful for understanding sakura phenology and its interactions with climate change.
 \newpage
 
 \appendix
 
 # Appendix {#sec-app}
 
-
-## Additional data details {#sec-sam}
-
-### Survey design and sampling techniques
-The survey design for this study integrates historical and modern sakura flowering datasets to provide a robust framework for analyzing long-term trends and regional variability. The historical data, spanning 812 CE to 2015, focuses on Kyoto, where flowering dates have been reconstructed using historical documents, such as diaries and records of hanami events. These reconstructions were validated against observed data starting in 1881, ensuring reliability. Sampling for historical data relies on curated sources from specific studies and publications, offering consistent insights into the relationship between March temperatures and flowering dates over centuries.
+## Survey design and sampling techniques
+The survey design of this study integrates historical and modern sakura blossom datasets, providing a powerful framework for analyzing long-term trends and regional differences. And analyzed a survey from Statista on the purpose of visiting Japan, with over 32,364 participants, of which 13% of tourists came specifically for sakura blossoms [@arba2024travel]. The historical data, spanning 812 CE to 2015, focuses on Kyoto, where flowering dates have been reconstructed using historical documents, such as diaries and records of hanami events. These reconstructions were validated against observed data starting in 1881, ensuring reliability. 
 
 But several sampling bias are not neglectble that may impact its accuracy and interpretation. Extreme climatic events, sakura specious, unusual flowering years can disproportionately influence the dataset, introducing outlier bias that skews trends and complicates the relationship between temperature and flowering dates. Additionally, the dataset's exclusive focus on Kyoto reflects selection bias, as it fails to capture regional variations in flowering patterns across Japan. This narrow scope, combined with the reliance on historical records from elite or literate groups, limits its broader applicability. 
 
 The modern dataset, covering 1953 to 2019, uses data collected by the Japan Meteorological Agency [@Japanclimate]. The sampling design includes a network of meteorological stations spread across Japan, capturing sakura flowering and full bloom dates from Kyushu in the south to Hokkaido in the north. Monthly mean air temperature data is also included to account for regional climatic variability. Sampling stations are geographically distributed, ensuring representation of diverse climatic zones and topographies. This spatially extensive design captures the progression of the sakura zensen (sakura blossom front) and provides granular insights into phenological differences across regions.Biases in how flowering dates are defined can also lead to confirmation bias, as recorded dates may reflect individual recorders' subjective definitions or expectations of what constitutes "flowering." This inconsistency can result in deviations that align more with personal or cultural interpretations than objective phenological events, further complicating the reliability of historical records. It is also the reason, when we build the model, we only use the data from modern_sakura_data, to ensure high accuracy and reliability for prediction.
 
-In conclusion, the historical sampling focuses on long-term climatic trends in a single location (Kyoto), while modern sampling emphasizes spatial variability and regional climate sensitivity. Together, these approaches enable a comprehensive analysis of how sakura flowering responds to both historical climate trends and modern regional dynamics, ensuring robust and representative findings.
+In conclusion, the historical sampling focuses on long-term climatic trends in a single location (Kyoto), while modern sampling emphasizes spatial variability and regional climate sensitivity. Together, these approaches enable a through analysis of how sakura flowering responds to both historical climate trends and modern regional dynamics, ensuring robust and representative findings.
+
+## Additional data details {#sec-sam}
+###History Data
+The historical dataset, shown in @fig-hissam, includes reconstructed March temperatures, the flowering day of the year (DOY), and specific flowering dates for selected years between 812 and 851 CE.
+```{r}
+#| label: fig-hissam
+#| fig-cap: "Sample Historical Sakura Data"
+#| echo: false
+#| warning: false 
+#| message: false
+#| fig-align: center
+# Select a sample of rows from the historical data
+sample_history_data <- history_data %>%
+  select(year, temp_c_recon, flower_doy, flower_date) %>%
+  slice(1:4)  # Select the first 4 rows for demonstration
+
+# Rename columns for better readability
+colnames(sample_history_data) <- c("Year", "Reconstructed Temp (°C)", "Day of Year (DOY)", "Flowering Date")
+
+# Display the table using kable
+kable(
+  sample_history_data,
+  col.names = c("Year", "Reconstructed Temp (°C)", "Day of Year", "Flowering Date"),
+  booktabs = TRUE,
+)
+
+
+```
+
+### Correlation between Each Variable
+@fig-heatmap presents the correlation heatmap for the modern sakura dataset, illustrating the relationships between key numerical variables. A notably strong positive correlation (close to 1) is observed between flower_day_in_numeric and full_bloom_day_in_numeric. Latitude and longitude also show moderate to strong positive correlations with flowering indicators, emphasizing the influence of geographic factors on blooming behavior. Among these, latitude exhibits a particularly strong correlation, highlighting its significance in predicting flowering dates.This is consistent with our results in @sec-result. And the variable year showed a weak negative correlation with flowering date, suggesting that flowering may occur earlier in the year under the influence of increasing temperatures due to global warming. 
+```{r}
+#| label: fig-heatmap
+#| tbl-cap: "Correlation Heatmap"
+#| echo: false
+#| warning: false 
+#| message: false
+#| fig-align: center
+
+# Compute the correlation matrix
+cor_matrix <- cor(sakura_data[, sapply(sakura_data, is.numeric)], use = "complete.obs")
+
+# Convert the correlation matrix to a data frame for ggplot2
+cor_data <- as.data.frame(as.table(cor_matrix))  # Convert to long format
+cor_data <- cor_data[cor_data$Var1 != cor_data$Var2, ]  # Remove diagonal entries (self-correlation)
+
+# Plot the heatmap
+ggplot(cor_data, aes(x = Var1, y = Var2, fill = Freq)) +
+  geom_tile(color = "white", lwd = 0.7) +  # Add white borders for distinction
+  scale_fill_gradient2(
+    low = scales::alpha("#FFB7C5", 0.7),  # Sakura-inspired soft pink (low correlation)
+    mid = scales::alpha("#FFFFFF", 0.7),  # White (neutral correlation)
+    high = scales::alpha("#8B5CF6", 0.6), # Purple (high correlation)
+    midpoint = 0,
+    name = "Correlation"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 10),
+    axis.title = element_blank(),
+    panel.grid = element_blank(),
+    legend.position = "right"
+  ) +
+  labs(
+    title = "Correlation Heatmap of Modern Sakura Data between Variables",
+  )
+```
 
 ## Model details {#sec-model-details}
-
-## Posterior predictive check
+### Posterior predictive check
 
 In @fig-ppcheckandposteriorvsprior we implement a posterior predictive check and the distribution of posterior are show in @fig-pos-dis. 
 This shows the density overlay plot demonstrates a strong alignment between the observed sakura flowering dates and the model's posterior predictions. The observed density, represented by the dark blue line, closely matches the predictive densities (lighter blue lines) across most of the distribution, indicating that the model captures the central tendency and major patterns effectively. The primary peak around 80 is well-represented, showing the model's strength in predicting the most common flowering dates. Additionally, the secondary peak around 120 aligns reasonably well, suggesting the model's ability to handle more complex patterns, such as bimodal distributions. However, slight discrepancies are observed in the tails of the distribution, particularly below 40 and above 140, where the predictive densities deviate from the observed data. These divergences indicate potential challenges in capturing extreme values or outliers, which may be addressed by including additional predictors, such as microclimatic conditions or species-specific traits.
@@ -915,8 +1058,7 @@ ppc_dens_overlay(
 
 ## Diagnostics
 
-@fig-mcmc-convergence
-The MCMC diagnostics provide strong evidence of convergence and reliability in the posterior estimates. The trace plots for key parameters, including latitude, longitude, and month_mean_temp, demonstrate good mixing across all four chains, with no discernible trends or drift over iterations. Each parameter fluctuates within a stable range, reflecting consistent exploration of the posterior distribution. For instance, latitude ranges between approximately 4.5 and 5.6, while longitude and month_mean_temp remain similarly stable. The R-hat diagnostics further confirm convergence, with all values close to 1.0, indicating that the chains are well-mixed and have reached equilibrium. These results collectively validate the robustness of the MCMC algorithm, ensuring that the posterior estimates accurately reflect the relationships between the predictors and sakura flowering dates. This provides a solid foundation for subsequent inferences and model interpretation.
+@fig-summary-package and @fig-mcmc-convergence collectively provide a through view of the model's performance and reliability. The coefficient estimates with 95% confidence intervals underscore the significant influence of latitude and month_mean_temp in predicting sakura flowering dates, while longitude appears less impact. @fig-mcmc-convergence perform the MCMC diagnostics provide strong evidence of convergence and reliability in the posterior estimates. The trace plots for key parameters, including latitude, longitude, and month_mean_temp, demonstrate good mixing across all four chains, with no discernible trends or drift over iterations. Each parameter fluctuates within a stable range, reflecting consistent exploration of the posterior distribution. For instance, latitude ranges between approximately 4.5 and 5.6, while longitude and month_mean_temp remain similarly stable. The R-hat diagnostics further confirm convergence, with all values close to 1.0, indicating that the chains are well-mixed and have reached equilibrium. These results collectively validate the robustness of the MCMC algorithm, ensuring that the posterior estimates accurately reflect the relationships between the predictors and sakura flowering dates. This provides a solid foundation for subsequent inferences and model interpretation.
 
 ```{r}
 #| label: fig-mcmc-convergence
@@ -959,7 +1101,41 @@ grid.arrange(trace_plot, rhat_plot, ncol = 2)
 
 ```
 
+```{r}
+#| label: fig-summary-package
+#| fig-cap: "Model Summary"
+#| echo: false
+#| warning: false 
+#| message: false
+#| fig-align: center
+# Load required libraries
+library(tidyverse)
+library(broom.mixed)  # For extracting Bayesian model estimates
+library(ggplot2)
 
+# Extract model estimates
+model_summary <- broom.mixed::tidy(flower_model, effects = "fixed", conf.int = TRUE)
+
+# Filter out the intercept
+model_summary <- model_summary %>% filter(term != "(Intercept)")
+
+# Create a coefficient plot
+ggplot(model_summary, aes(x = estimate, y = term)) +
+  geom_point(size = 3, color = "blue") +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.2, color = "black") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Coefficient Estimates with 95% Confidence Intervals",
+    x = "Estimate",
+    y = "Predictor"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 12),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+```
 
 \newpage
 

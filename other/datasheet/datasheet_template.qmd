@@ -1,5 +1,5 @@
 ---
-title: "Datasheet for 'Sakura Dataset'"
+title: "Datasheet for 'Sakura Flowering Dataset'"
 subtitle: ""
 author: 
   - Shanjie Jiao
@@ -12,15 +12,16 @@ number-sections: true
 bibliography: references.bib
 ---
 
-Extract of the questions from @gebru2021datasheets.
-
+Extract of the questions from @Gebru2021Datasheets.
+Dataset are collected by Alex [@Alex2020sakura], which extracted from Dr.Yasuyuki [@yasuyuki2015cherry] and Japan Meteorological Agency [@Japanclimate].
+Temperature data are scraped by Shanjie Jiao from Japan Meteorological Agency [@Japanclimate].
 
 **Motivation**
 
 1. *For what purpose was the dataset created? Was there a specific task in mind? Was there a specific gap that needed to be filled? Please provide a description.*
     - The dataset was created to analyze and model the flowering dates of sakura trees in Japan, focusing on understanding how climatic and geographic factors influence phenology. It addresses the need for a structured, comprehensive dataset combining historical and modern records to study trends related to climate change and its impact on sakura flowering patterns.
 2. *Who created the dataset (for example, which team, research group) and on behalf of which entity (for example, company, institution, organization)?*
-    - The dataset integrates historical data from Prof. Yasuyuki Aono’s work and modern data from the Japan Meteorological Agency (JMA), collected by Alex
+    - The dataset integrates historical data from Prof. Yasuyuki Aono’s work and modern data from the Japan Meteorological Agency [@Japanclimate], collected by Alex
 3. *Who funded the creation of the dataset? If there is an associated grant, please provide the name of the grantor and the grant name and number.*
     - TBD
 4. *Any other comments?*
