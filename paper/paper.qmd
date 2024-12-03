@@ -135,7 +135,7 @@ Although some limitations have been addressed through data screening, cleaning, 
 
 ## Outcome variables
 
-The main outcome variables in this study are the "flowering day" and "full bloom day," which represent the specific dates (converted into numeric form) when sakura enters the flowering and full bloom stages, respectively. A statistical summary of these variables is presented in @tbl-flower-sta, while @fig-flower depicts their overall distribution. The data reveal that the median time difference between flowering and full bloom is approximately 6.22 days. Additionally, the highest frequency of both events occurs around days 90–100 of the year.
+The main outcome variables in this study are the "flowering day" and "full bloom day", which represent the specific dates (converted into numeric form) when sakura enters the flowering and full bloom stages, respectively. A statistical summary of these variables is presented in @tbl-flower-sta, while @fig-flower depicts their overall distribution. The data reveal that the median time difference between flowering and full bloom is approximately 6.22 days. Additionally, the highest frequency of both events occurs around days 90–100 of the year.
 
 ```{r}
 #| label: tbl-flower-sta   # For citation in Quarto
@@ -966,7 +966,7 @@ For a more precise prediction, several improvements should be considered. First,
 
 # Appendix {#sec-app}
 
-## Survey design and sampling techniques
+## Sampling, Data Observational and Potential Bias
 The survey design of this study integrates historical and modern sakura blossom datasets, providing a powerful framework for analyzing long-term trends and regional differences. And analyzed a survey from Statista on the purpose of visiting Japan, with over 32,364 participants, of which 13% of tourists came specifically for sakura blossoms [@arba2024travel]. The historical data, spanning 812 CE to 2015, focuses on Kyoto, where flowering dates have been reconstructed using historical documents, such as diaries and records of hanami events. These reconstructions were validated against observed data starting in 1881, ensuring reliability. 
 
 But several sampling bias are not neglectble that may impact its accuracy and interpretation. Extreme climatic events, sakura specious, unusual flowering years can disproportionately influence the dataset, introducing outlier bias that skews trends and complicates the relationship between temperature and flowering dates. Additionally, the dataset's exclusive focus on Kyoto reflects selection bias, as it fails to capture regional variations in flowering patterns across Japan. This narrow scope, combined with the reliance on historical records from elite or literate groups, limits its broader applicability. 
