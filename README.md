@@ -1,4 +1,4 @@
-# Starter folder
+# Sakura blossom Prediction Model for Japan
 
 ## Overview
 
