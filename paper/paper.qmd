@@ -77,7 +77,7 @@ The primary estimand in this Bayesian hierarchical model is the sakura flowering
 The Bayesian hierarchical model built in this research predicts sakura flowering dates with high accuracy, achieving RMSE values of 3.1 (training) and 3.4 (testing) while explaining over 95% of the variability. Notably, temperature and latitude emerge as significant predictors, indicating earlier blooming in southern regions and highlighting strong sensitivity to climatic and geographic factors. Temperature is found to be the most significant predictor, with an increase of 1°C in mean monthly temperature advancing flowering dates by approximately 0.33 days. Latitude shows a strong positive effect, with higher latitudes leading to later flowering dates. In contrast, longitude has a negligible impact.
 
 
-The structure of this paper is as follows: @sec-data details the data sources and the methodologies employed, including data scraping and manipulation techniques. @sec-model outlines the development of prediction models, specifically Linear Regression and Bayesian Spline Models, which are further analyzed in @sec-result. In @sec-dis, the impact of global warming on the sakura blossom period, along with real-life implementation and limitations of the study, will be discussed, including an exploration of sakura flowering conditions from history to the present, and providing suggestions for further improvement. Further dataset and model details will be presented in @sec-sam and @sec-model-details separately.
+The structure of this paper is as follows: @sec-data details the data sources and the methodologies employed, including data scraping and manipulation techniques. @sec-model outlines the development of prediction models, specifically Linear Regression and Bayesian Spline Models, which are further analyzed in @sec-result. In @sec-dis, the impact of global warming on the sakura blossom period, along with real-life implementation and limitations of the study, will be discussed, including an exploration of sakura flowering conditions from history to the present, and providing suggestions for further improvement. Further dataset, model details, and dataset defect will be presented in @sec-sam, @sec-model-details, and @sec-def separately. An idealized survey for researching Sakura flowering in the context of socio-ecological dynamics is detailed in @sec-survey.
 
 # Data {#sec-data}
 
@@ -964,20 +964,11 @@ For a more precise prediction, several improvements should be considered. First,
 
 \appendix
 
-# Appendix {#sec-app}
+# Appendix {-}
 
-## Sampling, Data Observational and Potential Bias
-The survey design of this study integrates historical and modern sakura blossom datasets, providing a powerful framework for analyzing long-term trends and regional differences. And analyzed a survey from Statista on the purpose of visiting Japan, with over 32,364 participants, of which 13% of tourists came specifically for sakura blossoms [@arba2024travel]. The historical data, spanning 812 CE to 2015, focuses on Kyoto, where flowering dates have been reconstructed using historical documents, such as diaries and records of hanami events. These reconstructions were validated against observed data starting in 1881, ensuring reliability. 
+# Additional data details {#sec-sam}
 
-But several sampling bias are not neglectble that may impact its accuracy and interpretation. Extreme climatic events, sakura specious, unusual flowering years can disproportionately influence the dataset, introducing outlier bias that skews trends and complicates the relationship between temperature and flowering dates. Additionally, the dataset's exclusive focus on Kyoto reflects selection bias, as it fails to capture regional variations in flowering patterns across Japan. This narrow scope, combined with the reliance on historical records from elite or literate groups, limits its broader applicability. 
-
-The modern dataset, covering 1953 to 2019, uses data collected by the Japan Meteorological Agency [@Japanclimate]. The sampling design includes a network of meteorological stations spread across Japan, capturing sakura flowering and full bloom dates from Kyushu in the south to Hokkaido in the north. Monthly mean air temperature data is also included to account for regional climatic variability. Sampling stations are geographically distributed, ensuring representation of diverse climatic zones and topographies. This spatially extensive design captures the progression of the sakura zensen (sakura blossom front) and provides granular insights into phenological differences across regions.Biases in how flowering dates are defined can also lead to confirmation bias, as recorded dates may reflect individual recorders' subjective definitions or expectations of what constitutes "flowering." This inconsistency can result in deviations that align more with personal or cultural interpretations than objective phenological events, further complicating the reliability of historical records. It is also the reason, when we build the model, we only use the data from modern_sakura_data, to ensure high accuracy and reliability for prediction.
-
-In conclusion, the historical sampling focuses on long-term climatic trends in a single location (Kyoto), while modern sampling emphasizes spatial variability and regional climate sensitivity. Together, these approaches enable a through analysis of how sakura flowering responds to both historical climate trends and modern regional dynamics, ensuring robust and representative findings.
-
-## Additional data details {#sec-sam}
-
-### History Data
+## History Data
 
 The historical dataset, shown in @fig-hissam, includes reconstructed March temperatures, the flowering day of the year (DOY), and specific flowering dates for selected years between 812 and 851 CE.
 ```{r}
@@ -1005,7 +996,7 @@ kable(
 
 ```
 
-### Correlation between Each Variable
+## Correlation between Each Variable
 
 @fig-heatmap presents the correlation heatmap for the modern sakura dataset, illustrating the relationships between key numerical variables. A notably strong positive correlation (close to 1) is observed between flower_day_in_numeric and full_bloom_day_in_numeric. Latitude and longitude also show moderate to strong positive correlations with flowering indicators, emphasizing the influence of geographic factors on blooming behavior. Among these, latitude exhibits a particularly strong correlation, highlighting its significance in predicting flowering dates.This is consistent with our results in @sec-result. And the variable year showed a weak negative correlation with flowering date, suggesting that flowering may occur earlier in the year under the influence of increasing temperatures due to global warming. 
 ```{r}
@@ -1046,9 +1037,9 @@ ggplot(cor_data, aes(x = Var1, y = Var2, fill = Freq)) +
   )
 ```
 
-## Model details {#sec-model-details}
+# Model details {#sec-model-details}
 
-### Posterior predictive check
+## Posterior predictive check
 
 In @fig-ppcheckandposteriorvsprior we implement a posterior predictive check. The result shows the density overlay plot demonstrates a strong alignment between the observed sakura flowering dates and the model's posterior predictions. The observed density, represented by the dark blue line, closely matches the predictive densities (lighter blue lines) across most of the distribution, indicating that the model captures the central tendency and major patterns effectively. The primary peak around 80 is well-represented, showing the model's strength in predicting the most common flowering dates. Additionally, the secondary peak around 120 aligns reasonably well, suggesting the model's ability to handle more complex patterns, such as bimodal distributions. However, slight discrepancies are observed in the tails of the distribution, particularly below 40 and above 140, where the predictive densities deviate from the observed data. These divergences indicate potential challenges in capturing extreme values or outliers, which may be addressed by including additional predictors, such as microclimatic conditions or species-specific traits.
 
@@ -1158,6 +1149,104 @@ ggplot(model_summary, aes(x = estimate, y = term)) +
   )
 
 ```
+
+
+
+# Sampling, Data Observational and Potential Bias {#sec-def}
+The survey design of this study integrates historical and modern sakura blossom datasets, providing a powerful framework for analyzing long-term trends and regional differences. And analyzed a survey from Statista on the purpose of visiting Japan, with over 32,364 participants, of which 13% of tourists came specifically for sakura blossoms [@arba2024travel]. The historical data, spanning 812 CE to 2015, focuses on Kyoto, where flowering dates have been reconstructed using historical documents, such as diaries and records of hanami events. These reconstructions were validated against observed data starting in 1881, ensuring reliability. 
+
+But several sampling bias are not neglectble that may impact its accuracy and interpretation. Extreme climatic events, sakura specious, unusual flowering years can disproportionately influence the dataset, introducing outlier bias that skews trends and complicates the relationship between temperature and flowering dates. Additionally, the dataset's exclusive focus on Kyoto reflects selection bias, as it fails to capture regional variations in flowering patterns across Japan. This narrow scope, combined with the reliance on historical records from elite or literate groups, limits its broader applicability. 
+
+The modern dataset, covering 1953 to 2019, uses data collected by the Japan Meteorological Agency [@Japanclimate]. The sampling design includes a network of meteorological stations spread across Japan, capturing sakura flowering and full bloom dates from Kyushu in the south to Hokkaido in the north. Monthly mean air temperature data is also included to account for regional climatic variability. Sampling stations are geographically distributed, ensuring representation of diverse climatic zones and topographies. This spatially extensive design captures the progression of the sakura zensen (sakura blossom front) and provides granular insights into phenological differences across regions.Biases in how flowering dates are defined can also lead to confirmation bias, as recorded dates may reflect individual recorders' subjective definitions or expectations of what constitutes "flowering." This inconsistency can result in deviations that align more with personal or cultural interpretations than objective phenological events, further complicating the reliability of historical records. It is also the reason, when we build the model, we only use the data from modern_sakura_data, to ensure high accuracy and reliability for prediction.
+
+In conclusion, the historical sampling focuses on long-term climatic trends in a single location (Kyoto), while modern sampling emphasizes spatial variability and regional climate sensitivity. Together, these approaches enable a through analysis of how sakura flowering responds to both historical climate trends and modern regional dynamics, ensuring robust and representative findings.
+
+# Idealized Methodology for Socio-Ecological Survey on Sakura Flowering {#sec-survey}
+
+## Introduction
+
+This appendix outlines an idealized survey methodology focused on public observations and opinions regarding sakura flowering patterns. The design prioritizes capturing data from underrepresented geographic areas in Japan, with a budget of up to $100,000.
+
+## Sampling Strategy
+
+To ensure balanced geographic representation, the survey will adopt a stratified random sampling approach focused on regions with limited historical sakura data.
+
+- **Sampling Frame**: Residents and tourists in regions across Japan, particularly areas with limited sakura flowering records.
+- **Sampling Method**: Stratified random sampling based on geographic distribution to address data gaps in underrepresented regions.
+- **Sample Size**: Target 5,000 responses, adjusted for a 10% nonresponse rate to achieve approximately 4,500 usable responses.
+- **Geographic Distribution**: Prioritize underrepresented areas (e.g., rural Hokkaido, Shikoku, and Kyushu) while maintaining coverage in major sakura observation regions like Kyoto and Tokyo.
+
+## Recruitment Plan
+
+The survey will be conducted exclusively online to maximize reach and cost efficiency:
+
+- **Online Recruitment**:
+  - Social media platforms (e.g., Instagram, X, Facebook) with region-specific campaigns targeting underrepresented areas.
+  - Advertisements on sakura and climate-related blogs and websites, as well as platforms popular among nature enthusiasts and researchers.
+  - Links to the survey hosted on platforms like Google Forms or similar secure systems.
+
+## Budget Allocation
+Online Recruitment Campaigns: $40,000        
+Participant Incentives: $20,000       
+Data Analysis and Quality Control:$15,000  
+Administrative Costs: $15,000   
+
+**Total Budget**: $100,000
+
+## Survey Design
+
+The survey will focus on collecting neutral, scientifically relevant, and culturally appropriate data regarding sakura flowering patterns.
+
+- **Question Types**: Close-ended and Likert-scale questions.
+- **Response Options**: Neutral options, including “prefer not to say,” for sensitive questions.
+- **Key Topics**:
+  - Observations of sakura flowering patterns.
+  - Perceptions of changes in flowering timing.
+  - Opinions on influencing factors such as climate and geography.
+  - Awareness of the connection between sakura flowering and climate change.
+
+## Data Processing
+
+The collected data will be cleaned, weighted, and analyzed to ensure quality and reliability:
+
+1. **Prevent Duplicate Submissions**: Use unique IP tracking for online surveys.
+2. **Handle Missing Data**: Remove responses with significant missing values.
+3. **Weighting and Adjustment**: Apply equal weights for all regions to ensure balanced representation across geographic areas.
+4. **Data Validation**: Pilot the survey with 50 respondents from targeted regions to refine the questions and ensure clarity.
+
+## Example Survey Questions
+
+1. Have you observed sakura flowering in your area in the past five years?
+   - Yes
+   - No
+   - Prefer not to say
+2. What is your gender
+   - Male
+   - Femae
+   - Prefer not to say
+3. Have you noticed changes in sakura flowering dates in your region over the past decade?
+   - Yes, significantly earlier
+   - Yes, slightly earlier
+   - No noticeable change
+   - Yes, slightly later
+   - Yes, significantly later
+4. What factors do you believe most influence sakura flowering patterns?
+   - Temperature
+   - Geographic location
+   - Urban heat islands
+   - Climate change
+   - Other
+5. Do you think sakura flowering patterns are a reliable indicator of climate change?
+   - Strongly agree
+   - Agree
+   - Neutral
+   - Disagree
+   - Strongly disagree
+
+## Conclusion
+
+This survey methodology is designed to efficiently gather data about sakura flowering, with a focus on underrepresented geographic areas and public perceptions of influencing factors. By ensuring balanced representation and a cost-effective approach, the survey supports informed discussions on sakura flowering patterns and their broader implications, and may serves as a valuable foundation dataset for further research on socio-economic topics related to Sakura.
+
 
 \newpage
 
