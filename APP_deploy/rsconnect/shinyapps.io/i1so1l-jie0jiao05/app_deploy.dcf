@@ -1,0 +1,10 @@
+name: app_deploy
+title:
+username: i1so1l-jie0jiao05
+account: i1so1l-jie0jiao05
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14136573
+bundleId: 9877519
+url: https://i1so1l-jie0jiao05.shinyapps.io/app_deploy/
+version: 1
