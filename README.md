@@ -5,6 +5,11 @@
 This study developed a Bayesian hierarchical model to predict sakura flowering dates using climate and geographic predictors such as latitude, longitude, and mean monthly temperature, while accounting for regional and temporal variations through random effects. The model demonstrated strong predictive accuracy with low errors and meaningful insights into the sensitivity of sakura phenology to climate factors. Validation through posterior predictive checks and convergence diagnostics confirmed the model's reliability. Broader implications include its utility for climate change studies, tourism planning, and regional conservation, with potential for further enhancement by incorporating additional predictors and dynamic modeling techniques.
 
 
+## Deployed Website
+
+Web link is available here: https://i1so1l-jie0jiao05.shinyapps.io/sakura-prediction/
+
+
 ## File Structure
 
 The repo is structured as:
@@ -19,7 +24,8 @@ The repo is structured as:
 -   `scripts` contains the R scripts used to simulate, download, scrape and clean data.
 
 
-
 ## Statement on LLM usage
 
 This project utilized the assistance of ChatGPT 4.0, the detail could be find in `other`.
+
+
