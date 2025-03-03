@@ -4,13 +4,11 @@ library(dplyr)
 library(readr)
 library(patchwork)
 
-# 读取温度数据（无纬度经度）-- 改为相对路径
 temp_data <- read_csv("temperatures_with_station_names.csv")
-
-# 读取站点经纬度数据 -- 改为相对路径
 stations_data <- read_csv("Stations_Name_Lat_Lon__Cleaned_.csv")
 
-# 预测模型系数
+#Model
+
 beta_0 <- -47.4751
 beta_temp <- 0.3315
 beta_lat <- 4.8615
@@ -53,7 +51,7 @@ ui <- fluidPage(
         "))
   ),
   
-  div(class = "title-bar", "Sakura Flowering Date Predictor (All Japan Stations)"),
+  div(class = "title-bar", "Sakura Flowering Date Predictor (All Japan Region)"),
   
   sidebarLayout(
     sidebarPanel(
@@ -66,8 +64,9 @@ ui <- fluidPage(
       helpText("Leave temperatures blank to use projected climate warming."),
       wellPanel(
         h4("📖 About the Model"),
-        p("This model predicts flowering days based on climate warming (WACC) and station location (latitude/longitude)."),
+        p("This model predicts flowering days using Bayesian hierarchical regression, incorporating climate change (WACC) and station locations (latitude/longitude) cross Japan."),
         p("WACC = weighted average of January, February, and March temperatures."),
+        p("Sakura blossom date and temperature data are sourced by Japan Meteorological Agency (JMA)."),
         tags$code("DOY = β0 + β1 * WACC + β2 * Latitude + β3 * Longitude")
       )
     ),
